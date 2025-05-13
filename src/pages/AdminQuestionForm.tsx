@@ -90,31 +90,31 @@ const AdminQuestionForm = () => {
 
   // Field arrays for dynamic form fields
   const { fields: constraintFields, append: appendConstraint, remove: removeConstraint } = 
-    useFieldArray({ 
+    useFieldArray<FormValues>({ 
       control: form.control, 
-      name: "constraints" 
+      name: "constraints"
     });
   
   const { fields: sampleTestCaseFields, append: appendSampleTestCase, remove: removeSampleTestCase } = 
-    useFieldArray({ 
+    useFieldArray<FormValues>({ 
       control: form.control, 
       name: "sampleTestCases" 
     });
   
   const { fields: actualTestCaseFields, append: appendActualTestCase, remove: removeActualTestCase } = 
-    useFieldArray({ 
+    useFieldArray<FormValues>({ 
       control: form.control, 
       name: "actualTestCases" 
     });
   
   const { fields: topicFields, append: appendTopic, remove: removeTopic } = 
-    useFieldArray({ 
+    useFieldArray<FormValues>({ 
       control: form.control, 
       name: "topics" 
     });
   
   const { fields: solutionFields, append: appendSolution, remove: removeSolution } = 
-    useFieldArray({ 
+    useFieldArray<FormValues>({ 
       control: form.control, 
       name: "questionSolutions" 
     });
