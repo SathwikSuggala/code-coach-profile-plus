@@ -8,6 +8,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: any | null;
+  role: string | null;
   login: (userName: string, password: string) => Promise<void>;
   register: (userName: string, password: string, name: string) => Promise<void>;
   logout: () => void;
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   isLoading: true,
   user: null,
+  role: null,
   login: async () => {},
   register: async () => {},
   logout: () => {},
@@ -28,6 +30,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [user, setUser] = useState<any | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Check if user is authenticated on mount
@@ -36,10 +39,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(true);
       try {
         const token = localStorage.getItem("jwt");
+        const storedRole = localStorage.getItem("role");
+        
         if (token) {
           // Attempt to load user data to verify token is valid
           const userData = await apiService.getUserInfo();
           setUser(userData);
+          setRole(storedRole);
           setIsAuthenticated(true);
         }
       } catch (error) {
@@ -49,6 +55,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.removeItem("username");
         setIsAuthenticated(false);
         setUser(null);
+        setRole(null);
       } finally {
         setIsLoading(false);
       }
@@ -66,6 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userData = await apiService.getUserInfo();
       
       setUser(userData);
+      setRole(response.role);
       setIsAuthenticated(true);
       navigate("/dashboard");
     } catch (error) {
@@ -100,6 +108,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     apiService.logout();
     setIsAuthenticated(false);
     setUser(null);
+    setRole(null);
     navigate("/login");
   };
 
@@ -109,6 +118,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated,
         isLoading,
         user,
+        role,
         login,
         register,
         logout,

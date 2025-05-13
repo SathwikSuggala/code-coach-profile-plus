@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "../components/Layout";
 import { apiService } from "../services/apiService";
@@ -53,7 +52,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const AdminQuestionForm = () => {
-  const { isAuthenticated, role } = useAuth();
+  const { isAuthenticated, user, role } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -100,12 +99,17 @@ const AdminQuestionForm = () => {
   const onSubmit = async (data: FormValues) => {
     // Fix field names to match API requirements
     const formattedData = {
-      ...data,
-      "question### Description ": data.questionDescription
+      questionName: data.questionName,
+      "question### Description ": data.questionDescription,
+      constraints: data.constraints,
+      sampleTestCases: data.sampleTestCases,
+      actualTestCases: data.actualTestCases,
+      topics: data.topics,
+      questionDifficulty: data.questionDifficulty,
+      questionSource: data.questionSource,
+      questionSolutions: data.questionSolutions
     };
     
-    delete formattedData.questionDescription;
-
     setIsSubmitting(true);
     try {
       await apiService.addNewQuestion(formattedData);
