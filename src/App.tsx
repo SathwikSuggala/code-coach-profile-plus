@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import FloatingChat from "./components/FloatingChat";
 
 // Pages
 import Login from "./pages/Login";
@@ -16,6 +17,7 @@ import Questions from "./pages/Questions";
 import Chat from "./pages/Chat";
 import Quizzes from "./pages/Quizzes";
 import NotFound from "./pages/NotFound";
+import AdminQuestionForm from "./pages/AdminQuestionForm"; 
 
 const queryClient = new QueryClient();
 
@@ -60,10 +62,18 @@ const App = () => (
                 <Quizzes />
               </ProtectedRoute>
             } />
+            <Route path="/admin/add-question" element={
+              <ProtectedRoute>
+                <AdminQuestionForm />
+              </ProtectedRoute>
+            } />
             
             {/* 404 route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          
+          {/* Floating Chat - appears on all pages when authenticated */}
+          <FloatingChat position="bottom-right" />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

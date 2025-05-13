@@ -25,6 +25,32 @@ interface LoginData {
   password: string;
 }
 
+interface NewQuestionData {
+  questionName: string;
+  "question### Description "?: string;
+  questionDescription?: string;
+  constraints: string[];
+  sampleTestCases: {
+    input: string;
+    output: string;
+    explanation?: string;
+  }[];
+  actualTestCases: {
+    input: string;
+    output: string;
+    explanation?: string;
+  }[];
+  topics: string[];
+  questionDifficulty: string;
+  questionSource: string;
+  questionSolutions: {
+    name: string;
+    explanation: string;
+    example: string;
+    code: string;
+  }[];
+}
+
 export const apiService = {
   // Authentication APIs
   register: async (data: RegisterData): Promise<RegisterResponse> => {
@@ -216,6 +242,35 @@ export const apiService = {
   },
 
   // Coding Questions APIs
+  addNewQuestion: async (questionData: NewQuestionData): Promise<void> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/addNewQuestion`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(questionData),
+      });
+      
+      if (response.status === 403) {
+        throw new Error("You don't have permission to add questions");
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || `HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Add question error:", error);
+      toast.error("Failed to add question: " + (error as Error).message);
+      throw error;
+    }
+  },
+  
   getAllQuestionNames: async (): Promise<any[]> => {
     try {
       const token = localStorage.getItem("jwt");
