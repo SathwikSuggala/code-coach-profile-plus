@@ -17,6 +17,8 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 interface QuizQuestion {
   type: string;
@@ -55,6 +57,7 @@ const Quizzes = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState("generate"); // generate, quiz, result
   const [negativeMarking, setNegativeMarking] = useState(true);
+  const navigate = useNavigate();
 
   const handleGenerateQuiz = async () => {
     if (!topic) {
@@ -157,62 +160,76 @@ const Quizzes = () => {
 
   const renderGenerateForm = () => {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Generate Quiz</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="topic">Topic *</Label>
-            <Input
-              id="topic"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g., JavaScript, Data Structures, Algorithms"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="subTopic">Sub-Topic (Optional)</Label>
-            <Input
-              id="subTopic"
-              value={subTopic}
-              onChange={(e) => setSubTopic(e.target.value)}
-              placeholder="e.g., Arrays, Functions, Loops"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="numQuestions">Number of Questions</Label>
-            <Input
-              id="numQuestions"
-              type="number"
-              min={1}
-              max={20}
-              value={numQuestions}
-              onChange={(e) => setNumQuestions(parseInt(e.target.value) || 5)}
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="negativeMarking"
-              checked={negativeMarking}
-              onCheckedChange={(checked) => setNegativeMarking(checked as boolean)}
-            />
-            <Label htmlFor="negativeMarking" className="cursor-pointer">
-              Enable negative marking
-            </Label>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button 
-            onClick={handleGenerateQuiz} 
-            disabled={isLoading || !topic}
-            className="w-full"
-          >
-            {isLoading ? "Generating..." : "Generate Quiz"}
-          </Button>
-        </CardFooter>
-      </Card>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+        className="max-w-xl w-full mx-auto"
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>Generate Quiz</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="topic">Topic *</Label>
+              <Input
+                id="topic"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="e.g., JavaScript, Data Structures, Algorithms"
+                required
+                className="text-lg py-5 rounded-xl shadow-lg focus:shadow-xl transition-all duration-200 border-2 border-transparent focus:border-blue-400"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subTopic">Sub-Topic (Optional)</Label>
+              <Input
+                id="subTopic"
+                value={subTopic}
+                onChange={(e) => setSubTopic(e.target.value)}
+                placeholder="e.g., Arrays, Functions, Loops"
+                className="text-lg py-5 rounded-xl shadow-lg focus:shadow-xl transition-all duration-200 border-2 border-transparent focus:border-blue-400"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="numQuestions">Number of Questions</Label>
+              <Input
+                id="numQuestions"
+                type="number"
+                min={1}
+                max={20}
+                value={numQuestions}
+                onChange={(e) => setNumQuestions(parseInt(e.target.value) || 5)}
+                className="text-lg py-5 rounded-xl shadow-lg focus:shadow-xl transition-all duration-200 border-2 border-transparent focus:border-blue-400"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="negativeMarking"
+                checked={negativeMarking}
+                onCheckedChange={setNegativeMarking}
+              />
+              <Label htmlFor="negativeMarking">Enable Negative Marking</Label>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.97 }}
+              className="w-full"
+            >
+              <Button
+                onClick={handleGenerateQuiz}
+                disabled={isLoading}
+                className="h-12 text-lg w-full rounded-xl shadow-lg bg-blue-600 hover:bg-blue-700 focus:bg-blue-700 transition-all duration-200"
+              >
+                {isLoading ? "Generating..." : "Generate Quiz"}
+              </Button>
+            </motion.div>
+          </CardFooter>
+        </Card>
+      </motion.div>
     );
   };
 
@@ -395,42 +412,17 @@ const Quizzes = () => {
 
   return (
     <Layout>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Interactive Quizzes</h1>
-        <p className="text-gray-600">
-          Test your knowledge with generated quizzes on any topic
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Quizzes</h1>
+        <Button variant="outline" onClick={() => navigate("/quiz-history")}>
+          Quiz History
+        </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6 w-full max-w-md">
-          <TabsTrigger value="generate" onClick={() => setCurrentStep("generate")}>
-            Generate Quiz
-          </TabsTrigger>
-          <TabsTrigger value="history" disabled>
-            Quiz History
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="generate">
-          {currentStep === "generate" && renderGenerateForm()}
-          {currentStep === "quiz" && renderQuizQuestions()}
-          {currentStep === "result" && renderQuizResults()}
-        </TabsContent>
-
-        <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quiz History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500 text-center py-8">
-                Quiz history feature coming soon!
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Main quiz UI */}
+      {currentStep === "generate" && renderGenerateForm()}
+      {currentStep === "quiz" && renderQuizQuestions()}
+      {currentStep === "result" && renderQuizResults()}
     </Layout>
   );
 };

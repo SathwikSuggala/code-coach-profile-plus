@@ -472,6 +472,27 @@ export const apiService = {
     }
   },
   
+  getAllQuizHistory: async (): Promise<any[]> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      const response = await fetch(`${API_BASE_URL}/readingMaterial/getAllQuiz`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Get all quiz history error:", error);
+      toast.error("Failed to fetch quiz history: " + (error as Error).message);
+      throw error;
+    }
+  },
+
   // Utility method to check if user is authenticated
   isAuthenticated: (): boolean => {
     return !!localStorage.getItem("jwt");
@@ -483,5 +504,29 @@ export const apiService = {
     localStorage.removeItem("role");
     localStorage.removeItem("username");
     toast.success("Logged out successfully!");
-  }
+  },
+
+  getTopicsLearnedWithPercentages: async (): Promise<any> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/readingMaterial/topicsLearnedWithPercentages`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Get topics learned error:", error);
+      toast.error("Failed to get topics learned data: " + (error as Error).message);
+      throw error;
+    }
+  },
 };

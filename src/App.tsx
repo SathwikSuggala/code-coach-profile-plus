@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,8 +15,10 @@ import Profile from "./pages/Profile";
 import Questions from "./pages/Questions";
 import Chat from "./pages/Chat";
 import Quizzes from "./pages/Quizzes";
+import QuizHistory from "./pages/QuizHistory";
 import NotFound from "./pages/NotFound";
-import AdminQuestionForm from "./pages/AdminQuestionForm"; 
+import AdminQuestionForm from "./pages/AdminQuestionForm";
+import Resources from "./pages/Resources";
 
 const queryClient = new QueryClient();
 
@@ -62,9 +63,19 @@ const App = () => (
                 <Quizzes />
               </ProtectedRoute>
             } />
+            <Route path="/quiz-history" element={
+              <ProtectedRoute>
+                <QuizHistory />
+              </ProtectedRoute>
+            } />
             <Route path="/admin/add-question" element={
               <ProtectedRoute>
                 <AdminQuestionForm />
+              </ProtectedRoute>
+            } />
+            <Route path="/resources" element={
+              <ProtectedRoute>
+                <Resources />
               </ProtectedRoute>
             } />
             
@@ -73,7 +84,7 @@ const App = () => (
           </Routes>
           
           {/* Floating Chat - appears on all pages when authenticated */}
-          <FloatingChat position="bottom-right" />
+          <FloatingChat />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
