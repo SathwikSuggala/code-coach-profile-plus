@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import Layout from "../components/Layout";
 import { apiService } from "../services/apiService";
@@ -23,33 +24,48 @@ import { z } from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, Trash2, ChevronRight } from "lucide-react";
 
+// Define schemas for test cases and solutions to ensure correct typing
+const testCaseSchema = z.object({
+  input: z.string().min(1, "Input is required"),
+  output: z.string().min(1, "Output is required"),
+  explanation: z.string().optional()
+});
+
+const solutionSchema = z.object({
+  name: z.string().min(1, "Solution name is required"),
+  explanation: z.string().min(1, "Explanation is required"),
+  example: z.string().min(1, "Example is required"),
+  code: z.string().min(1, "Code is required")
+});
+
 // Define form schema using zod
 const formSchema = z.object({
   questionName: z.string().min(1, "Question name is required"),
   questionDescription: z.string().min(1, "Question description is required"),
   constraints: z.array(z.string().min(1, "Constraint cannot be empty")),
-  sampleTestCases: z.array(z.object({
-    input: z.string().min(1, "Input is required"),
-    output: z.string().min(1, "Output is required"),
-    explanation: z.string().optional()
-  })),
-  actualTestCases: z.array(z.object({
-    input: z.string().min(1, "Input is required"),
-    output: z.string().min(1, "Output is required"),
-    explanation: z.string().optional()
-  })),
+  sampleTestCases: z.array(testCaseSchema),
+  actualTestCases: z.array(testCaseSchema),
   topics: z.array(z.string().min(1, "Topic cannot be empty")),
   questionDifficulty: z.enum(["EASY", "MEDIUM", "HARD"]),
   questionSource: z.enum(["LeetCode", "CodeForces", "HackerRank", "Other"]),
-  questionSolutions: z.array(z.object({
-    name: z.string().min(1, "Solution name is required"),
-    explanation: z.string().min(1, "Explanation is required"),
-    example: z.string().min(1, "Example is required"),
-    code: z.string().min(1, "Code is required")
-  }))
+  questionSolutions: z.array(solutionSchema)
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+// Define types to match API requirements
+type TestCase = {
+  input: string;
+  output: string;
+  explanation?: string;
+};
+
+type Solution = {
+  name: string;
+  explanation: string;
+  example: string;
+  code: string;
+};
 
 const AdminQuestionForm = () => {
   const { isAuthenticated, user, role } = useAuth();
@@ -74,19 +90,34 @@ const AdminQuestionForm = () => {
 
   // Field arrays for dynamic form fields
   const { fields: constraintFields, append: appendConstraint, remove: removeConstraint } = 
-    useFieldArray({ control: form.control, name: "constraints" });
+    useFieldArray({ 
+      control: form.control, 
+      name: "constraints" 
+    });
   
   const { fields: sampleTestCaseFields, append: appendSampleTestCase, remove: removeSampleTestCase } = 
-    useFieldArray({ control: form.control, name: "sampleTestCases" });
+    useFieldArray({ 
+      control: form.control, 
+      name: "sampleTestCases" 
+    });
   
   const { fields: actualTestCaseFields, append: appendActualTestCase, remove: removeActualTestCase } = 
-    useFieldArray({ control: form.control, name: "actualTestCases" });
+    useFieldArray({ 
+      control: form.control, 
+      name: "actualTestCases" 
+    });
   
   const { fields: topicFields, append: appendTopic, remove: removeTopic } = 
-    useFieldArray({ control: form.control, name: "topics" });
+    useFieldArray({ 
+      control: form.control, 
+      name: "topics" 
+    });
   
   const { fields: solutionFields, append: appendSolution, remove: removeSolution } = 
-    useFieldArray({ control: form.control, name: "questionSolutions" });
+    useFieldArray({ 
+      control: form.control, 
+      name: "questionSolutions" 
+    });
 
   // Check if user is admin
   React.useEffect(() => {
@@ -102,12 +133,12 @@ const AdminQuestionForm = () => {
       questionName: data.questionName,
       "question### Description ": data.questionDescription,
       constraints: data.constraints,
-      sampleTestCases: data.sampleTestCases,
-      actualTestCases: data.actualTestCases,
+      sampleTestCases: data.sampleTestCases as TestCase[],
+      actualTestCases: data.actualTestCases as TestCase[],
       topics: data.topics,
       questionDifficulty: data.questionDifficulty,
       questionSource: data.questionSource,
-      questionSolutions: data.questionSolutions
+      questionSolutions: data.questionSolutions as Solution[]
     };
     
     setIsSubmitting(true);
