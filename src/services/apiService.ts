@@ -1,7 +1,6 @@
-
 import { toast } from "sonner";
 
-const API_BASE_URL = "https://capstone-1-y2mc.onrender.com/api";
+export const API_BASE_URL = "http://localhost:8080/api";
 
 interface AuthResponse {
   jwt: string;

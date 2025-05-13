@@ -1,93 +1,90 @@
-
 import React, { useEffect, useState, useRef } from "react";
-import { apiService } from "../services/apiService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { MessageSquare, X, PlusCircle } from "lucide-react";
+import { API_BASE_URL } from "@/services/apiService";
 import { toast } from "sonner";
-import { MessageSquare, X, Maximize2, Minimize2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface Message {
   participantType: string;
   response: string;
 }
 
-type ChatPosition = "bottom-right" | "bottom-left" | "top-right" | "top-left";
-
-interface FloatingChatProps {
-  position?: ChatPosition;
-  initiallyOpen?: boolean;
-}
-
-const FloatingChat: React.FC<FloatingChatProps> = ({
-  position = "bottom-right",
-  initiallyOpen = false,
-}) => {
-  const [isOpen, setIsOpen] = useState(initiallyOpen);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [sessionId, setSessionId] = useState<number | null>(null);
+const FloatingChat = () => {
+  const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Position styles
-  const positionClasses = {
-    "bottom-right": "bottom-4 right-4",
-    "bottom-left": "bottom-4 left-4",
-    "top-right": "top-4 right-4",
-    "top-left": "top-4 left-4",
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Auto-scroll to bottom of messages
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    scrollToBottom();
   }, [messages]);
 
-  // Create new session when component mounts
   useEffect(() => {
-    if (isOpen && !sessionId) {
-      createNewSession();
+    const fetchRecentSession = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/chat/recentChatId`, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("jwt")}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data) {
+            setSessionId(data);
+            // Fetch chat history for this session
+            const historyResponse = await fetch(`${API_BASE_URL}/chat/sessionHistory/${data}`, {
+              method: "GET",
+              headers: {
+                "Authorization": `Bearer ${localStorage.getItem("jwt")}`,
+              },
+            });
+
+            if (historyResponse.ok) {
+              const historyData = await historyResponse.json();
+              if (!historyData.error) {
+                setMessages(historyData);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching recent session:", error);
+      }
+    };
+
+    if (isOpen) {
+      fetchRecentSession();
     }
   }, [isOpen]);
 
-  // Load session history when sessionId changes
-  useEffect(() => {
-    if (sessionId) {
-      loadSessionHistory();
-    }
-  }, [sessionId]);
-
   const createNewSession = async () => {
     try {
-      setIsLoading(true);
-      const newSessionId = await apiService.createChatSession();
-      setSessionId(newSessionId);
-      setMessages([]);
-      toast.success("New chat session created");
-    } catch (error) {
-      console.error("Error creating chat session:", error);
-      toast.error("Failed to create chat session");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      const response = await fetch(`${API_BASE_URL}/chat/createNewSession`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("jwt")}`,
+        },
+      });
 
-  const loadSessionHistory = async () => {
-    if (!sessionId) return;
-    
-    try {
-      setIsLoading(true);
-      const history = await apiService.getChatHistory(sessionId);
-      setMessages(history);
+      if (response.ok) {
+        const data = await response.json();
+        setSessionId(data.sessionId);
+        setMessages([]); // Clear messages for new session
+        toast.success("New chat session created!");
+      }
     } catch (error) {
-      console.error("Error loading session history:", error);
-      toast.error("Failed to load chat history");
-    } finally {
-      setIsLoading(false);
+      console.error("Error creating new session:", error);
+      toast.error("Failed to create new session");
     }
   };
 
@@ -100,23 +97,33 @@ const FloatingChat: React.FC<FloatingChatProps> = ({
       // Add user message to UI
       const userMessageObj = {
         participantType: "USER",
-        response: JSON.stringify(inputMessage)
+        response: inputMessage
       };
       
       setMessages([...messages, userMessageObj]);
       
       // Send to API
-      const response = await apiService.sendChatMessage(sessionId, inputMessage);
+      const response = await fetch(`${API_BASE_URL}/chat/sessionChat/${sessionId}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("jwt")}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(inputMessage)
+      });
       
-      // Add bot response to UI
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
       const botResponse = {
         participantType: "CHATBOT",
-        response
+        response: data.response || data
       };
       
       setMessages(prev => [...prev, botResponse]);
-      
-      // Clear input
       setInputMessage("");
     } catch (error) {
       console.error("Error sending message:", error);
@@ -126,126 +133,84 @@ const FloatingChat: React.FC<FloatingChatProps> = ({
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  // Format message for display
-  const formatMessage = (content: string) => {
-    try {
-      // If content is JSON string, parse it
-      if (content.startsWith("\"") && content.endsWith("\"")) {
-        return JSON.parse(content);
-      }
-      return content;
-    } catch (e) {
-      return content;
-    }
-  };
-
-  // Toggle chat window
-  const toggleChat = () => {
-    setIsOpen(!isOpen);
-  };
-
-  // Toggle expanded view
-  const toggleExpandedView = () => {
-    setIsExpanded(!isExpanded);
-  };
-
   return (
-    <>
-      {/* Floating button when chat is closed */}
-      {!isOpen && (
+    <div className="fixed bottom-4 right-4 z-50">
+      {!isOpen ? (
         <Button
-          onClick={toggleChat}
-          className={`rounded-full h-14 w-14 shadow-lg fixed z-50 ${positionClasses[position]}`}
+          onClick={() => setIsOpen(true)}
+          className="rounded-full w-14 h-14 shadow-lg"
         >
-          <MessageSquare size={24} />
+          <MessageSquare className="w-6 h-6" />
         </Button>
-      )}
-
-      {/* Chat window when open */}
-      {isOpen && (
-        <Card 
-          className={cn(
-            "fixed z-50 shadow-xl transition-all duration-300",
-            positionClasses[position],
-            isExpanded 
-              ? "w-[90vw] h-[80vh] inset-x-[5vw] inset-y-[10vh]"
-              : "w-[350px] h-[500px]"
-          )}
-        >
-          <CardHeader className="p-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">AI Assistant</CardTitle>
-            <div className="flex space-x-1">
-              <Button variant="ghost" size="icon" onClick={toggleExpandedView}>
-                {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+      ) : (
+        <Card className="w-[400px] shadow-xl">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-bold">Chat Assistant</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={createNewSession}
+                variant="outline"
+                size="sm"
+                className="h-8"
+              >
+                <PlusCircle className="w-4 h-4 mr-2" />
+                New Session
               </Button>
-              <Button variant="ghost" size="icon" onClick={toggleChat}>
-                <X size={18} />
+              <Button
+                onClick={() => setIsOpen(false)}
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+              >
+                <X className="w-4 h-4" />
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="p-0 h-[calc(100%-60px)] flex flex-col">
-            {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-gray-400">
-                  <p>Welcome! How can I help you today?</p>
-                </div>
-              ) : (
-                messages.map((message, index) => (
+          <CardContent>
+            <div className="space-y-4">
+              <div className="h-[300px] overflow-y-auto border rounded-lg p-4">
+                {messages.map((message, index) => (
                   <div
                     key={index}
-                    className={`flex ${
-                      message.participantType === "USER" ? "justify-end" : "justify-start"
+                    className={`mb-4 ${
+                      message.participantType === "USER" ? "text-right" : "text-left"
                     }`}
                   >
                     <div
-                      className={`max-w-[80%] px-4 py-2 rounded-lg ${
+                      className={`inline-block p-3 rounded-lg ${
                         message.participantType === "USER"
-                          ? "bg-dev-blue text-white"
-                          : "bg-gray-100 text-gray-800"
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-200 text-gray-800"
                       }`}
                     >
-                      <pre className="whitespace-pre-wrap break-words font-sans">
-                        {formatMessage(message.response)}
-                      </pre>
+                      {message.response}
                     </div>
                   </div>
-                ))
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div className="p-3 border-t">
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
               <div className="flex gap-2">
-                <Textarea
+                <Input
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  placeholder="Type your message here..."
-                  className="flex-1 resize-none"
-                  rows={2}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="Type your message..."
+                  className="flex-1"
                 />
-                <Button 
-                  onClick={handleSendMessage} 
-                  className="self-end"
-                  disabled={isLoading || !inputMessage.trim() || !sessionId}
-                >
-                  {isLoading ? "..." : "Send"}
+                <Button onClick={handleSendMessage} disabled={isLoading}>
+                  Send
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
-    </>
+    </div>
   );
 };
 

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { apiService } from "../services/apiService";
@@ -418,6 +417,9 @@ var solve = function(s) {
                     {selectedQuestion.questionDifficulty}
                   </Badge>
                 </div>
+              </DialogHeader>
+              
+              <div className="flex-grow overflow-hidden">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid grid-cols-3">
                     <TabsTrigger value="description" className="flex items-center gap-2">
@@ -433,144 +435,142 @@ var solve = function(s) {
                       <span>Submissions</span>
                     </TabsTrigger>
                   </TabsList>
-                </Tabs>
-              </DialogHeader>
-              
-              <div className="flex-grow overflow-hidden">
-                <TabsContent value="description" className="h-full overflow-y-auto p-4 m-0">
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-semibold">Description</h3>
-                      <p className="mt-1 text-gray-700">
-                        {selectedQuestion.questionDescription}
-                      </p>
-                    </div>
 
-                    <div>
-                      <h3 className="font-semibold">Constraints</h3>
-                      <ul className="list-disc list-inside mt-1 text-gray-700">
-                        {selectedQuestion.constraints?.map((constraint, index) => (
-                          <li key={index}>{constraint}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold">Sample Test Cases</h3>
-                      <div className="space-y-3 mt-2">
-                        {selectedQuestion.sampleTestCases?.map((testCase, index) => (
-                          <div key={index} className="bg-gray-50 p-3 rounded-md">
-                            <div>
-                              <span className="font-medium">Input:</span> {testCase.input}
-                            </div>
-                            <div>
-                              <span className="font-medium">Output:</span> {testCase.output}
-                            </div>
-                            {testCase.explanation && (
-                              <div>
-                                <span className="font-medium">Explanation:</span> {testCase.explanation}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold">Topics</h3>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {selectedQuestion.topics?.map((topic, index) => (
-                          <Badge key={index} variant="outline">{topic}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="solution" className="h-full overflow-hidden m-0 flex flex-col">
-                  <div className="flex flex-col h-full">
-                    <div className="bg-gray-50 p-4 border-b flex justify-between items-center">
-                      <div className="flex space-x-2">
-                        <Select defaultValue="java">
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Language" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="java">Java</SelectItem>
-                            <SelectItem value="python">Python</SelectItem>
-                            <SelectItem value="javascript">JavaScript</SelectItem>
-                            <SelectItem value="cpp">C++</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          onClick={handleRunCode} 
-                          disabled={isLoading}
-                          className="flex items-center gap-2"
-                        >
-                          <Play size={16} />
-                          Run
-                        </Button>
-                        <Button 
-                          onClick={handleSubmitCode} 
-                          disabled={isLoading || solvedQuestionsIds.includes(selectedQuestion.questionId)}
-                          className="flex items-center gap-2"
-                        >
-                          {solvedQuestionsIds.includes(selectedQuestion.questionId) ? 
-                            "Already Submitted" : "Submit"}
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="flex-grow overflow-hidden flex">
-                      <div className="w-full h-full flex flex-col">
-                        <Textarea
-                          value={codeInput || getDefaultCode()}
-                          onChange={(e) => setCodeInput(e.target.value)}
-                          placeholder="Write your code here..."
-                          className="flex-grow p-4 font-mono text-sm resize-none overflow-auto rounded-none border-0 h-full"
-                        />
-                        {submitResult && (
-                          <div className={`p-4 border-t ${submitResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
-                            <h4 className={`font-medium ${submitResult.success ? 'text-green-600' : 'text-red-600'}`}>
-                              {submitResult.success ? 'Success!' : 'Error!'}
-                            </h4>
-                            <pre className="mt-1 text-sm whitespace-pre-wrap">
-                              {submitResult.success ? submitResult.output : submitResult.error}
-                            </pre>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="submissions" className="h-full overflow-y-auto p-4 m-0">
-                  {solvedQuestionsIds.includes(selectedQuestion.questionId) ? (
+                  <TabsContent value="description" className="h-full overflow-y-auto p-4 m-0">
                     <div className="space-y-4">
-                      <div className="flex items-center text-green-600">
-                        <CheckCircle className="h-5 w-5 mr-2" />
-                        <span className="font-medium">You've solved this problem!</span>
+                      <div>
+                        <h3 className="font-semibold">Description</h3>
+                        <p className="mt-1 text-gray-700">
+                          {selectedQuestion.questionDescription}
+                        </p>
                       </div>
-                      
-                      <div className="bg-gray-50 p-4 rounded-md">
-                        <h4 className="font-medium mb-2">Your most recent submission:</h4>
-                        <div className="text-sm text-gray-600">
-                          <p>Date: {new Date().toLocaleDateString()}</p>
-                          <p>Status: Accepted</p>
-                          <p>Runtime: 5ms (faster than 95% of submissions)</p>
-                          <p>Memory: 42.1MB (less than 87% of submissions)</p>
+
+                      <div>
+                        <h3 className="font-semibold">Constraints</h3>
+                        <ul className="list-disc list-inside mt-1 text-gray-700">
+                          {selectedQuestion.constraints?.map((constraint, index) => (
+                            <li key={index}>{constraint}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <h3 className="font-semibold">Sample Test Cases</h3>
+                        <div className="space-y-3 mt-2">
+                          {selectedQuestion.sampleTestCases?.map((testCase, index) => (
+                            <div key={index} className="bg-gray-50 p-3 rounded-md">
+                              <div>
+                                <span className="font-medium">Input:</span> {testCase.input}
+                              </div>
+                              <div>
+                                <span className="font-medium">Output:</span> {testCase.output}
+                              </div>
+                              {testCase.explanation && (
+                                <div>
+                                  <span className="font-medium">Explanation:</span> {testCase.explanation}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="font-semibold">Topics</h3>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {selectedQuestion.topics?.map((topic, index) => (
+                            <Badge key={index} variant="outline">{topic}</Badge>
+                          ))}
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>You haven't submitted a solution for this problem yet.</p>
-                      <p className="mt-2">Go to the solution tab to submit your code.</p>
+                  </TabsContent>
+                  
+                  <TabsContent value="solution" className="h-full overflow-hidden m-0 flex flex-col">
+                    <div className="flex flex-col h-full">
+                      <div className="bg-gray-50 p-4 border-b flex justify-between items-center">
+                        <div className="flex space-x-2">
+                          <Select defaultValue="java">
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Language" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="java">Java</SelectItem>
+                              <SelectItem value="python">Python</SelectItem>
+                              <SelectItem value="javascript">JavaScript</SelectItem>
+                              <SelectItem value="cpp">C++</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={handleRunCode} 
+                            disabled={isLoading}
+                            className="flex items-center gap-2"
+                          >
+                            <Play size={16} />
+                            Run
+                          </Button>
+                          <Button 
+                            onClick={handleSubmitCode} 
+                            disabled={isLoading || solvedQuestionsIds.includes(selectedQuestion.questionId)}
+                            className="flex items-center gap-2"
+                          >
+                            {solvedQuestionsIds.includes(selectedQuestion.questionId) ? 
+                              "Already Submitted" : "Submit"}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex-grow overflow-hidden flex">
+                        <div className="w-full h-full flex flex-col">
+                          <Textarea
+                            value={codeInput || getDefaultCode()}
+                            onChange={(e) => setCodeInput(e.target.value)}
+                            placeholder="Write your code here..."
+                            className="flex-grow p-4 font-mono text-sm resize-none overflow-auto rounded-none border-0 h-full"
+                          />
+                          {submitResult && (
+                            <div className={`p-4 border-t ${submitResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
+                              <h4 className={`font-medium ${submitResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                                {submitResult.success ? 'Success!' : 'Error!'}
+                              </h4>
+                              <pre className="mt-1 text-sm whitespace-pre-wrap">
+                                {submitResult.success ? submitResult.output : submitResult.error}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </TabsContent>
+                  </TabsContent>
+
+                  <TabsContent value="submissions" className="h-full overflow-y-auto p-4 m-0">
+                    {solvedQuestionsIds.includes(selectedQuestion.questionId) ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center text-green-600">
+                          <CheckCircle className="h-5 w-5 mr-2" />
+                          <span className="font-medium">You've solved this problem!</span>
+                        </div>
+                        
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          <h4 className="font-medium mb-2">Your most recent submission:</h4>
+                          <div className="text-sm text-gray-600">
+                            <p>Date: {new Date().toLocaleDateString()}</p>
+                            <p>Status: Accepted</p>
+                            <p>Runtime: 5ms (faster than 95% of submissions)</p>
+                            <p>Memory: 42.1MB (less than 87% of submissions)</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>You haven't submitted a solution for this problem yet.</p>
+                        <p className="mt-2">Go to the solution tab to submit your code.</p>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           )}

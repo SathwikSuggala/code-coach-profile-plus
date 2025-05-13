@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "../components/Layout";
 import { apiService } from "../services/apiService";
@@ -19,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, FieldArrayWithId } from "react-hook-form";
 import { z } from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, Trash2, ChevronRight } from "lucide-react";
@@ -42,10 +41,10 @@ const solutionSchema = z.object({
 const formSchema = z.object({
   questionName: z.string().min(1, "Question name is required"),
   questionDescription: z.string().min(1, "Question description is required"),
-  constraints: z.array(z.string().min(1, "Constraint cannot be empty")),
+  constraints: z.array(z.string()),
   sampleTestCases: z.array(testCaseSchema),
   actualTestCases: z.array(testCaseSchema),
-  topics: z.array(z.string().min(1, "Topic cannot be empty")),
+  topics: z.array(z.string()),
   questionDifficulty: z.enum(["EASY", "MEDIUM", "HARD"]),
   questionSource: z.enum(["LeetCode", "CodeForces", "HackerRank", "Other"]),
   questionSolutions: z.array(solutionSchema)
@@ -90,33 +89,33 @@ const AdminQuestionForm = () => {
 
   // Field arrays for dynamic form fields
   const { fields: constraintFields, append: appendConstraint, remove: removeConstraint } = 
-    useFieldArray<FormValues>({ 
-      control: form.control, 
-      name: "constraints"
+    useFieldArray({
+      control: form.control,
+      name: "constraints" as const
     });
   
   const { fields: sampleTestCaseFields, append: appendSampleTestCase, remove: removeSampleTestCase } = 
-    useFieldArray<FormValues>({ 
-      control: form.control, 
-      name: "sampleTestCases" 
+    useFieldArray<FormValues, "sampleTestCases", "id">({
+      control: form.control,
+      name: "sampleTestCases"
     });
   
   const { fields: actualTestCaseFields, append: appendActualTestCase, remove: removeActualTestCase } = 
-    useFieldArray<FormValues>({ 
-      control: form.control, 
-      name: "actualTestCases" 
+    useFieldArray<FormValues, "actualTestCases", "id">({
+      control: form.control,
+      name: "actualTestCases"
     });
   
   const { fields: topicFields, append: appendTopic, remove: removeTopic } = 
-    useFieldArray<FormValues>({ 
-      control: form.control, 
-      name: "topics" 
+    useFieldArray<FormValues>({
+      control: form.control,
+      name: "topics" as const
     });
   
   const { fields: solutionFields, append: appendSolution, remove: removeSolution } = 
-    useFieldArray<FormValues>({ 
-      control: form.control, 
-      name: "questionSolutions" 
+    useFieldArray<FormValues, "questionSolutions", "id">({
+      control: form.control,
+      name: "questionSolutions"
     });
 
   // Check if user is admin

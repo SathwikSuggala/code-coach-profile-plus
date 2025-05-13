@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "../components/Layout";
 import { apiService } from "../services/apiService";
@@ -55,6 +54,7 @@ const Quizzes = () => {
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState("generate"); // generate, quiz, result
+  const [negativeMarking, setNegativeMarking] = useState(true);
 
   const handleGenerateQuiz = async () => {
     if (!topic) {
@@ -114,7 +114,7 @@ const Quizzes = () => {
     try {
       setIsLoading(true);
       const quizData = {
-        negativeEnabled: true,
+        negativeEnabled: negativeMarking,
         totalTimeTaken,
         topic,
         subTopic: subTopic || null,
@@ -141,6 +141,7 @@ const Quizzes = () => {
     setSubTopic("");
     setNumQuestions(5);
     setQuizStartTime(null);
+    setNegativeMarking(true);
   };
 
   const getScoreColor = (score: number, total: number) => {
@@ -190,6 +191,16 @@ const Quizzes = () => {
               value={numQuestions}
               onChange={(e) => setNumQuestions(parseInt(e.target.value) || 5)}
             />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="negativeMarking"
+              checked={negativeMarking}
+              onCheckedChange={(checked) => setNegativeMarking(checked as boolean)}
+            />
+            <Label htmlFor="negativeMarking" className="cursor-pointer">
+              Enable negative marking
+            </Label>
           </div>
         </CardContent>
         <CardFooter>
