@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,19 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Custom colors for dev portal
+				'dev-blue': '#3498db',
+				'dev-dark-blue': '#2980b9',
+				'dev-green': '#2ecc71',
+				'dev-dark-green': '#27ae60',
+				'dev-red': '#e74c3c',
+				'dev-dark-red': '#c0392b',
+				'dev-purple': '#9b59b6',
+				'dev-dark-purple': '#8e44ad',
+				'dev-gray': '#95a5a6',
+				'dev-dark-gray': '#7f8c8d',
+				'dev-black': '#2c3e50'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

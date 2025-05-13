@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -35,19 +36,12 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -79,6 +73,7 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+    
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -98,4 +93,32 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.code-block {
+  @apply p-4 rounded-md bg-gray-100 dark:bg-gray-800 overflow-auto text-sm font-mono;
+}
+
+.api-card {
+  @apply transition-all duration-300 hover:shadow-lg;
+}
+
+.method-badge {
+  @apply px-2 py-0.5 rounded-md text-xs font-bold;
+}
+
+.method-get {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.method-post {
+  @apply bg-green-100 text-green-800;
+}
+
+.method-put {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.method-delete {
+  @apply bg-red-100 text-red-800;
 }
