@@ -96,11 +96,23 @@ const Dashboard = () => {
           // Process quiz history for chart
           const quizChartData = quizHistory
             .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-            .map((quiz: any) => ({
-              date: new Date(quiz.createdAt).toLocaleDateString(),
-              score: (quiz.totalMarksObtained / quiz.totalMarks) * 100,
-              topic: quiz.topic
-            }));
+            .reduce((acc: any[], quiz: any) => {
+              // Check if we already have an entry for this date
+              const existingEntry = acc.find(entry => entry.date === new Date(quiz.createdAt).toLocaleDateString());
+              
+              if (existingEntry) {
+                // If we have an entry for this date, update the score to be the average
+                existingEntry.score = (existingEntry.score + (quiz.totalMarksObtained / quiz.totalMarks) * 100) / 2;
+              } else {
+                // If no entry exists for this date, add a new one
+                acc.push({
+                  date: new Date(quiz.createdAt).toLocaleDateString(),
+                  score: (quiz.totalMarksObtained / quiz.totalMarks) * 100,
+                  topic: quiz.topic
+                });
+              }
+              return acc;
+            }, []);
 
           // Process topic-wise statistics
           const questionTypeSet = new Set<string>();
@@ -112,8 +124,8 @@ const Dashboard = () => {
                 totalScore: 0,
                 questionTypes: {
                   'MCQ': 0,
-                  'True-False': 0,
-                  'Short Answer': 0
+                  'Multi-Correct': 0,
+                  'True-False': 0
                 }
               };
             }
@@ -125,8 +137,8 @@ const Dashboard = () => {
               let questionType = 'MCQ';
               if (q.type === 'true-false') {
                 questionType = 'True-False';
-              } else if (q.type === 'short-answer') {
-                questionType = 'Short Answer';
+              } else if (q.type === 'multi-correct') {
+                questionType = 'Multi-Correct';
               }
               acc[quiz.topic].questionTypes[questionType]++;
               questionTypeSet.add(questionType);
@@ -151,8 +163,8 @@ const Dashboard = () => {
               let questionType = 'MCQ';
               if (q.type === 'true-false') {
                 questionType = 'True-False';
-              } else if (q.type === 'short-answer') {
-                questionType = 'Short Answer';
+              } else if (q.type === 'multi-correct') {
+                questionType = 'Multi-Correct';
               }
               
               if (!acc[questionType]) {

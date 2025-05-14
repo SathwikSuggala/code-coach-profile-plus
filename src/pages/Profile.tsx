@@ -7,11 +7,66 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Pencil } from "lucide-react";
+
+interface Address {
+  city: string;
+  state: string;
+  country: string;
+}
+
+interface FormData {
+  fullName: string;
+  accountsConnected: string[];
+  address: Address;
+  collegeName: string;
+  gitHubId: string;
+  linkedinId: string;
+  emailId: string;
+  mobileNumber: string;
+  dateOfBirth: string;
+  gender: string;
+  degree: string;
+  course: string;
+  codingLanguages: string[];
+  leetCodeUserName: string;
+  codeForcesUserName: string;
+}
+
+const API_BASE_URL = "http://localhost:8080/api";
 
 const Profile = () => {
   const [user, setUser] = useState<any>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [formData, setFormData] = useState<FormData>({
+    fullName: "",
+    accountsConnected: [],
+    address: {
+      city: "",
+      state: "",
+      country: ""
+    },
+    collegeName: "",
+    gitHubId: "",
+    linkedinId: "",
+    emailId: "",
+    mobileNumber: "",
+    dateOfBirth: "",
+    gender: "",
+    degree: "",
+    course: "",
+    codingLanguages: [],
+    leetCodeUserName: "",
+    codeForcesUserName: ""
+  });
 
   const profileImageUrl = useMemo(() => {
     if (!profileData?.profileImg) return '';
@@ -45,6 +100,23 @@ const Profile = () => {
         // Fetch user info
         const userData = await apiService.getUserInfo();
         setUser(userData);
+        setFormData({
+          fullName: userData.fullName || "",
+          accountsConnected: userData.accountsConnected || [],
+          address: userData.address || { city: "", state: "", country: "" },
+          collegeName: userData.collegeName || "",
+          gitHubId: userData.gitHubId || "",
+          linkedinId: userData.linkedinId || "",
+          emailId: userData.emailId || "",
+          mobileNumber: userData.mobileNumber || "",
+          dateOfBirth: userData.dateOfBirth || "",
+          gender: userData.gender || "",
+          degree: userData.degree || "",
+          course: userData.course || "",
+          codingLanguages: userData.codingLanguages || [],
+          leetCodeUserName: userData.leetCodeUserName || "",
+          codeForcesUserName: userData.codeForcesUserName || ""
+        });
 
         // Fetch profile data
         const profileResult = await apiService.getProfileData();
@@ -59,6 +131,71 @@ const Profile = () => {
 
     fetchData();
   }, []);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedImage(e.target.files[0]);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      if (parent === 'address') {
+        setFormData(prev => ({
+          ...prev,
+          address: {
+            ...prev.address,
+            [child]: value
+          }
+        }));
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const formDataToSend = new FormData();
+      if (selectedImage) {
+        formDataToSend.append('userimg', selectedImage);
+      }
+      formDataToSend.append('data', JSON.stringify(formData));
+
+      const token = localStorage.getItem('jwt');
+      if (!token) {
+        toast.error('Authentication required');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/uploadImage`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formDataToSend
+      });
+
+      if (response.ok) {
+        toast.success('Profile updated successfully');
+        setIsEditing(false);
+        // Refresh profile data
+        const userData = await apiService.getUserInfo();
+        setUser(userData);
+      } else {
+        toast.error('Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    }
+  };
 
   if (isLoading) {
     return (
@@ -77,11 +214,212 @@ const Profile = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease: "easeOut" }}
       >
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Profile</h1>
-          <p className="text-gray-600">
-            View and manage your profile information
-          </p>
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Profile</h1>
+            <p className="text-gray-600">
+              View and manage your profile information
+            </p>
+          </div>
+          <Dialog open={isEditing} onOpenChange={setIsEditing}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Pencil className="w-4 h-4" />
+                Edit Profile
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Profile</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="profileImage">Profile Image</Label>
+                    <Input
+                      id="profileImage"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="fullName">Full Name</Label>
+                      <Input
+                        id="fullName"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="emailId">Email</Label>
+                      <Input
+                        id="emailId"
+                        name="emailId"
+                        type="email"
+                        value={formData.emailId}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="mobileNumber">Mobile Number</Label>
+                      <Input
+                        id="mobileNumber"
+                        name="mobileNumber"
+                        value={formData.mobileNumber}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                      <Input
+                        id="dateOfBirth"
+                        name="dateOfBirth"
+                        type="date"
+                        value={formData.dateOfBirth}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MALE">Male</SelectItem>
+                        <SelectItem value="FEMALE">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="collegeName">College Name</Label>
+                      <Input
+                        id="collegeName"
+                        name="collegeName"
+                        value={formData.collegeName}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="degree">Degree</Label>
+                      <Input
+                        id="degree"
+                        name="degree"
+                        value={formData.degree}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="course">Course</Label>
+                    <Input
+                      id="course"
+                      name="course"
+                      value={formData.course}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="address.city">City</Label>
+                      <Input
+                        id="address.city"
+                        name="address.city"
+                        value={formData.address.city}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="address.state">State</Label>
+                      <Input
+                        id="address.state"
+                        name="address.state"
+                        value={formData.address.state}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="address.country">Country</Label>
+                      <Input
+                        id="address.country"
+                        name="address.country"
+                        value={formData.address.country}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="gitHubId">GitHub ID</Label>
+                      <Input
+                        id="gitHubId"
+                        name="gitHubId"
+                        value={formData.gitHubId}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="linkedinId">LinkedIn ID</Label>
+                      <Input
+                        id="linkedinId"
+                        name="linkedinId"
+                        value={formData.linkedinId}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="leetCodeUserName">LeetCode Username</Label>
+                      <Input
+                        id="leetCodeUserName"
+                        name="leetCodeUserName"
+                        value={formData.leetCodeUserName}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="codeForcesUserName">CodeForces Username</Label>
+                      <Input
+                        id="codeForcesUserName"
+                        name="codeForcesUserName"
+                        value={formData.codeForcesUserName}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-4">
+                  <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    Save Changes
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from "react";
 import { apiService } from "../services/apiService";
 import { useNavigate } from "react-router-dom";
@@ -75,7 +74,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(userData);
       setRole(response.role);
       setIsAuthenticated(true);
-      navigate("/dashboard");
+      localStorage.setItem("role", response.role);
+      if (response.role === "ROLE_ADMIN") {
+        navigate("/admin-home");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       console.error("Login error:", error);
       throw error;

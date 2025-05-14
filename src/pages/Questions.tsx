@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Layout from "../components/Layout";
-import { apiService } from "../services/apiService";
+import { apiService, API_BASE_URL } from "../services/apiService";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,7 +28,9 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, Code, FileText, Play, CheckSquare } from "lucide-react";
+import { CheckCircle, Code, FileText, Play, CheckSquare, Lightbulb } from "lucide-react";
+import { useNavigate, useParams } from 'react-router-dom';
+import ResourceLoadingAnimation from '../components/ResourceLoadingAnimation';
 
 interface Question {
   questionId: number;
@@ -75,6 +77,7 @@ const Questions = () => {
   const [codeInput, setCodeInput] = useState("");
   const [activeTab, setActiveTab] = useState("description");
   const [submitResult, setSubmitResult] = useState<{success: boolean; output?: string; error?: string} | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -145,20 +148,7 @@ const Questions = () => {
   }, [questions, searchTerm, difficultyFilter, topicFilter, solvedFilter]);
 
   const handleQuestionClick = async (questionId: number) => {
-    try {
-      setIsLoading(true);
-      const questionDetail = await apiService.getQuestionById(questionId);
-      setSelectedQuestion(questionDetail);
-      setIsQuestionDialogOpen(true);
-      setActiveTab("description");
-      setCodeInput("");
-      setSubmitResult(null);
-    } catch (error) {
-      console.error("Error fetching question details:", error);
-      toast.error("Failed to load question details");
-    } finally {
-      setIsLoading(false);
-    }
+    navigate(`/questions/${questionId}`);
   };
 
   const handleMarkAsSolved = async (questionId: number) => {
@@ -394,190 +384,351 @@ var solve = function(s) {
           )}
         </div>
       )}
+    </Layout>
+  );
+};
 
-      {/* Question Detail Dialog */}
-      <Dialog
-        open={isQuestionDialogOpen} 
-        onOpenChange={setIsQuestionDialogOpen}
-      >
-        <DialogContent className="max-w-5xl max-h-[90vh] h-[90vh] p-0 overflow-hidden">
-          {selectedQuestion && (
-            <div className="flex flex-col h-full">
-              <DialogHeader className="p-4 border-b">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <DialogTitle className="text-xl">
-                      {selectedQuestion.questionName}
-                    </DialogTitle>
-                    <DialogDescription>
-                      Question #{selectedQuestion.questionId} from {selectedQuestion.questionSource}
-                    </DialogDescription>
-                  </div>
-                  <Badge className={getDifficultyColor(selectedQuestion.questionDifficulty)}>
-                    {selectedQuestion.questionDifficulty}
-                  </Badge>
+// Create a new component for the question detail page
+const QuestionDetail = () => {
+  const { questionId } = useParams();
+  const navigate = useNavigate();
+  const [question, setQuestion] = useState<QuestionDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [codeInput, setCodeInput] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState('cpp');
+  const [submitResult, setSubmitResult] = useState<{success: boolean; output?: string; error?: string} | null>(null);
+  const [activeTab, setActiveTab] = useState("description");
+  const [showSuggestion, setShowSuggestion] = useState(false);
+  const [suggestion, setSuggestion] = useState("");
+  const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [showPulse, setShowPulse] = useState(false);
+
+  // Add typing inactivity timer
+  useEffect(() => {
+    let typingTimer: NodeJS.Timeout;
+    
+    if (isTyping) {
+      setShowPulse(false);
+      typingTimer = setTimeout(() => {
+        setIsTyping(false);
+        setShowPulse(true);
+      }, 5000); // 5 seconds
+    }
+
+    return () => {
+      if (typingTimer) {
+        clearTimeout(typingTimer);
+      }
+    };
+  }, [isTyping, codeInput]);
+
+  useEffect(() => {
+    const fetchQuestion = async () => {
+      try {
+        setIsLoading(true);
+        const questionDetail = await apiService.getQuestionById(Number(questionId));
+        setQuestion(questionDetail);
+        setCodeInput(getDefaultCode(selectedLanguage));
+      } catch (error) {
+        console.error("Error fetching question details:", error);
+        toast.error("Failed to load question details");
+        navigate('/questions');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchQuestion();
+  }, [questionId, selectedLanguage]);
+
+  const getDefaultCode = (lang: string) => {
+    switch (lang) {
+      case 'cpp':
+        return `#include <iostream>
+using namespace std;
+
+int main() {
+    // Write your solution here
+    return 0;
+}`;
+      case 'java':
+        return `public class Solution {
+    public static void main(String[] args) {
+        // Write your solution here
+    }
+}`;
+      case 'python':
+        return `# Write your solution here
+def solve():
+    pass`;
+      default:
+        return '// Write your solution here';
+    }
+  };
+
+  const handleRunCode = () => {
+    if (!codeInput.trim()) {
+      toast.error("Please enter some code to run");
+      return;
+    }
+    setIsLoading(true);
+    setTimeout(() => {
+      setSubmitResult({
+        success: true,
+        output: "All test cases passed!"
+      });
+      setIsLoading(false);
+    }, 1500);
+  };
+
+  const handleSubmitCode = () => {
+    if (!codeInput.trim()) {
+      toast.error("Please enter some code to submit");
+      return;
+    }
+    setIsLoading(true);
+    setTimeout(() => {
+      setSubmitResult({
+        success: true,
+        output: "All test cases passed! Great job!"
+      });
+      setIsLoading(false);
+    }, 2000);
+  };
+
+  const handleGetSuggestion = async () => {
+    if (!codeInput.trim()) {
+      toast.error("Please write some code first");
+      return;
+    }
+
+    setIsLoadingSuggestion(true);
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) {
+        toast.error("Authentication required");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/chat/nextStepSuggester`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          code: codeInput,
+          question: question?.questionDescription || ""
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get suggestion");
+      }
+
+      const data = await response.text();
+      setSuggestion(data);
+      setShowSuggestion(true);
+    } catch (error) {
+      console.error("Error getting suggestion:", error);
+      toast.error("Failed to get suggestion");
+    } finally {
+      setIsLoadingSuggestion(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-screen">
+          <ResourceLoadingAnimation progress={50} />
+          <p className="mt-4 text-gray-600">Loading question details...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!question) {
+    return null;
+  }
+
+  return (
+    <Layout>
+      <div className="flex flex-col h-screen">
+        {/* Header */}
+        <div className="p-4 border-b">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-bold">{question.questionName}</h1>
+              <p className="text-gray-600">Question #{question.questionId}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cpp">C++</SelectItem>
+                  <SelectItem value="java">Java</SelectItem>
+                  <SelectItem value="python">Python</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={() => navigate('/questions')}>
+                Back to Questions
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content - Side by Side Layout */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Side - Description */}
+          <div className="w-1/2 border-r overflow-auto p-4">
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-semibold">Description</h3>
+                <p className="mt-2 text-gray-700">{question.questionDescription}</p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold">Constraints</h3>
+                <ul className="list-disc list-inside mt-2">
+                  {question.constraints.map((constraint, index) => (
+                    <li key={index}>{constraint}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-semibold">Sample Test Cases</h3>
+                <div className="space-y-4 mt-2">
+                  {question.sampleTestCases.map((testCase, index) => (
+                    <div key={index} className="bg-gray-50 p-4 rounded-md">
+                      <div><strong>Input:</strong> {testCase.input}</div>
+                      <div><strong>Output:</strong> {testCase.output}</div>
+                      {testCase.explanation && (
+                        <div><strong>Explanation:</strong> {testCase.explanation}</div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </DialogHeader>
-              
-              <div className="flex-grow overflow-hidden">
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid grid-cols-3">
-                    <TabsTrigger value="description" className="flex items-center gap-2">
-                      <FileText size={16} />
-                      <span>Description</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="solution" className="flex items-center gap-2">
-                      <Code size={16} />
-                      <span>Solution</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="submissions" className="flex items-center gap-2">
-                      <CheckSquare size={16} />
-                      <span>Submissions</span>
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="description" className="h-full overflow-y-auto p-4 m-0">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="font-semibold">Description</h3>
-                        <p className="mt-1 text-gray-700">
-                          {selectedQuestion.questionDescription}
-                        </p>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold">Constraints</h3>
-                        <ul className="list-disc list-inside mt-1 text-gray-700">
-                          {selectedQuestion.constraints?.map((constraint, index) => (
-                            <li key={index}>{constraint}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold">Sample Test Cases</h3>
-                        <div className="space-y-3 mt-2">
-                          {selectedQuestion.sampleTestCases?.map((testCase, index) => (
-                            <div key={index} className="bg-gray-50 p-3 rounded-md">
-                              <div>
-                                <span className="font-medium">Input:</span> {testCase.input}
-                              </div>
-                              <div>
-                                <span className="font-medium">Output:</span> {testCase.output}
-                              </div>
-                              {testCase.explanation && (
-                                <div>
-                                  <span className="font-medium">Explanation:</span> {testCase.explanation}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="font-semibold">Topics</h3>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {selectedQuestion.topics?.map((topic, index) => (
-                            <Badge key={index} variant="outline">{topic}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="solution" className="h-full overflow-hidden m-0 flex flex-col">
-                    <div className="flex flex-col h-full">
-                      <div className="bg-gray-50 p-4 border-b flex justify-between items-center">
-                        <div className="flex space-x-2">
-                          <Select defaultValue="java">
-                            <SelectTrigger className="w-32">
-                              <SelectValue placeholder="Language" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="java">Java</SelectItem>
-                              <SelectItem value="python">Python</SelectItem>
-                              <SelectItem value="javascript">JavaScript</SelectItem>
-                              <SelectItem value="cpp">C++</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button 
-                            variant="outline" 
-                            onClick={handleRunCode} 
-                            disabled={isLoading}
-                            className="flex items-center gap-2"
-                          >
-                            <Play size={16} />
-                            Run
-                          </Button>
-                          <Button 
-                            onClick={handleSubmitCode} 
-                            disabled={isLoading || solvedQuestionsIds.includes(selectedQuestion.questionId)}
-                            className="flex items-center gap-2"
-                          >
-                            {solvedQuestionsIds.includes(selectedQuestion.questionId) ? 
-                              "Already Submitted" : "Submit"}
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="flex-grow overflow-hidden flex">
-                        <div className="w-full h-full flex flex-col">
-                          <Textarea
-                            value={codeInput || getDefaultCode()}
-                            onChange={(e) => setCodeInput(e.target.value)}
-                            placeholder="Write your code here..."
-                            className="flex-grow p-4 font-mono text-sm resize-none overflow-auto rounded-none border-0 h-full"
-                          />
-                          {submitResult && (
-                            <div className={`p-4 border-t ${submitResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
-                              <h4 className={`font-medium ${submitResult.success ? 'text-green-600' : 'text-red-600'}`}>
-                                {submitResult.success ? 'Success!' : 'Error!'}
-                              </h4>
-                              <pre className="mt-1 text-sm whitespace-pre-wrap">
-                                {submitResult.success ? submitResult.output : submitResult.error}
-                              </pre>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="submissions" className="h-full overflow-y-auto p-4 m-0">
-                    {solvedQuestionsIds.includes(selectedQuestion.questionId) ? (
-                      <div className="space-y-4">
-                        <div className="flex items-center text-green-600">
-                          <CheckCircle className="h-5 w-5 mr-2" />
-                          <span className="font-medium">You've solved this problem!</span>
-                        </div>
-                        
-                        <div className="bg-gray-50 p-4 rounded-md">
-                          <h4 className="font-medium mb-2">Your most recent submission:</h4>
-                          <div className="text-sm text-gray-600">
-                            <p>Date: {new Date().toLocaleDateString()}</p>
-                            <p>Status: Accepted</p>
-                            <p>Runtime: 5ms (faster than 95% of submissions)</p>
-                            <p>Memory: 42.1MB (less than 87% of submissions)</p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        <p>You haven't submitted a solution for this problem yet.</p>
-                        <p className="mt-2">Go to the solution tab to submit your code.</p>
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Right Side - Code Editor */}
+          <div className="w-1/2 flex flex-col">
+            <div className="flex justify-between gap-2 p-4 border-b">
+              <Button 
+                variant="outline" 
+                onClick={handleGetSuggestion}
+                disabled={isLoadingSuggestion}
+                className={`flex items-center gap-2 relative ${showPulse ? 'animate-heartbeat' : ''}`}
+              >
+                <Lightbulb className={`w-4 h-4 ${showPulse ? 'animate-glow text-yellow-400' : ''}`} />
+                {isLoadingSuggestion ? "Getting Suggestion..." : "Get Suggestion"}
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleRunCode}>
+                  Run
+                </Button>
+                <Button onClick={handleSubmitCode}>
+                  Submit
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto">
+              <Textarea
+                value={codeInput}
+                onChange={(e) => {
+                  setCodeInput(e.target.value);
+                  setIsTyping(true);
+                }}
+                className="h-full font-mono text-sm resize-none"
+              />
+            </div>
+            {submitResult && (
+              <div className={`p-4 border-t ${submitResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
+                <h4 className={`font-medium ${submitResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                  {submitResult.success ? 'Success!' : 'Error!'}
+                </h4>
+                <pre className="mt-1 text-sm whitespace-pre-wrap">
+                  {submitResult.success ? submitResult.output : submitResult.error}
+                </pre>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={showSuggestion} onOpenChange={setShowSuggestion}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Next Steps Suggestion</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4 space-y-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-medium text-blue-800 mb-2">Suggested Next Steps:</h4>
+              <div className="text-blue-900 whitespace-pre-wrap">{suggestion}</div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </Layout>
   );
 };
 
-export default Questions;
+// Add the heartbeat animation keyframes at the end of the file
+const styles = `
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.1);
+  }
+  50% {
+    transform: scale(1);
+  }
+  75% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes glow {
+  0% {
+    filter: drop-shadow(0 0 0px rgba(255, 255, 0, 0));
+  }
+  25% {
+    filter: drop-shadow(0 0 5px rgba(255, 255, 0, 0.7));
+  }
+  50% {
+    filter: drop-shadow(0 0 0px rgba(255, 255, 0, 0));
+  }
+  75% {
+    filter: drop-shadow(0 0 5px rgba(255, 255, 0, 0.7));
+  }
+  100% {
+    filter: drop-shadow(0 0 0px rgba(255, 255, 0, 0));
+  }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 1.5s ease-in-out infinite;
+}
+`;
+
+// Add the styles to the document
+const styleSheet = document.createElement("style");
+styleSheet.textContent = styles;
+document.head.appendChild(styleSheet);
+
+export { Questions, QuestionDetail };

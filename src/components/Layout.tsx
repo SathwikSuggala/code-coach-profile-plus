@@ -10,7 +10,8 @@ import {
   LogOut,
   Menu,
   X,
-  Book
+  Book,
+  BarChart
 } from "lucide-react";
 
 interface LayoutProps {
@@ -28,6 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: "Chat Bot", path: "/chat", icon: <MessageSquare size={20} /> },
     { name: "Quizzes", path: "/quizzes", icon: <FileText size={20} /> },
     { name: "Resources", path: "/resources", icon: <Book size={20} /> },
+    { name: "Coding Stats", path: "/coding-stats", icon: <BarChart size={20} /> },
   ];
 
   const isActive = (path: string) => {

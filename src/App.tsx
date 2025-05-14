@@ -12,13 +12,16 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
-import Questions from "./pages/Questions";
+import { Questions, QuestionDetail } from "./pages/Questions";
 import Chat from "./pages/Chat";
 import Quizzes from "./pages/Quizzes";
 import QuizHistory from "./pages/QuizHistory";
 import NotFound from "./pages/NotFound";
 import AdminQuestionForm from "./pages/AdminQuestionForm";
 import Resources from "./pages/Resources";
+import CodingStats from "./pages/CodingStats";
+import ResourceGeneration from './pages/ResourceGeneration';
+import AdminHome from "./pages/AdminHome";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +56,11 @@ const App = () => (
                 <Questions />
               </ProtectedRoute>
             } />
+            <Route path="/questions/:questionId" element={
+              <ProtectedRoute>
+                <QuestionDetail />
+              </ProtectedRoute>
+            } />
             <Route path="/chat" element={
               <ProtectedRoute>
                 <Chat />
@@ -76,6 +84,17 @@ const App = () => (
             <Route path="/resources" element={
               <ProtectedRoute>
                 <Resources />
+              </ProtectedRoute>
+            } />
+            <Route path="/coding-stats" element={
+              <ProtectedRoute>
+                <CodingStats />
+              </ProtectedRoute>
+            } />
+            <Route path="/resource-generation" element={<ResourceGeneration />} />
+            <Route path="/admin-home" element={
+              <ProtectedRoute>
+                <AdminHome />
               </ProtectedRoute>
             } />
             

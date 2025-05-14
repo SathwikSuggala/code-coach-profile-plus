@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface QuizQuestion {
   type: string;
@@ -57,6 +58,7 @@ const Quizzes = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState("generate"); // generate, quiz, result
   const [negativeMarking, setNegativeMarking] = useState(true);
+  const [questionType, setQuestionType] = useState("mcq");
   const navigate = useNavigate();
 
   const handleGenerateQuiz = async () => {
@@ -70,7 +72,8 @@ const Quizzes = () => {
       const response = await apiService.generateQuiz(
         topic,
         subTopic || null,
-        numQuestions
+        numQuestions,
+        questionType
       );
       setQuiz(response.quiz);
       setCurrentStep("quiz");
@@ -193,6 +196,22 @@ const Quizzes = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="questionType">Question Type</Label>
+              <Select
+                value={questionType}
+                onValueChange={setQuestionType}
+              >
+                <SelectTrigger className="text-lg py-5 rounded-xl shadow-lg focus:shadow-xl transition-all duration-200 border-2 border-transparent focus:border-blue-400">
+                  <SelectValue placeholder="Select question type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mcq">Multiple Choice (Single Answer)</SelectItem>
+                  <SelectItem value="multi-correct">Multiple Choice (Multiple Answers)</SelectItem>
+                  <SelectItem value="true-false">True/False</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="numQuestions">Number of Questions</Label>
               <Input
                 id="numQuestions"
@@ -208,7 +227,7 @@ const Quizzes = () => {
               <Checkbox
                 id="negativeMarking"
                 checked={negativeMarking}
-                onCheckedChange={setNegativeMarking}
+                onCheckedChange={val => setNegativeMarking(val === true)}
               />
               <Label htmlFor="negativeMarking">Enable Negative Marking</Label>
             </div>

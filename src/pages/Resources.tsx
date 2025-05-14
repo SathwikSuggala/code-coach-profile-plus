@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CheckCircle, Award, TrendingUp, ChevronDown, ChevronUp, Info, BookOpen, ListChecks, Layers, Map, HelpCircle, Tag, Plus } from "lucide-react";
 import { motion } from "framer-motion";
+import ResourceLoadingAnimation from '../components/ResourceLoadingAnimation';
 
 const API_BASE_URL = "http://localhost:8080/api/readingMaterial";
 
@@ -544,7 +545,12 @@ const Resources: React.FC = () => {
         </motion.form>
         {/* Resource Data */}
         {error && <div className="bg-red-100 text-red-700 p-3 rounded flex items-center justify-between w-full max-w-2xl">{error} <Button size="sm" onClick={handleSearch}>Retry</Button></div>}
-        {loadingResource && <div className="w-full max-w-2xl">{skeleton}</div>}
+        {loadingResource && (
+          <div className="w-full max-w-2xl flex flex-col items-center justify-center py-12">
+            <ResourceLoadingAnimation progress={50} />
+            <p className="mt-4 text-gray-600">Generating learning resources...</p>
+          </div>
+        )}
         {!loadingResource && resourceData && (
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -555,11 +561,14 @@ const Resources: React.FC = () => {
             {renderResourceSections()}
             {renderResourceCards()}
             {/* Floating Action Button */}
-            <div className="fixed bottom-24 right-8 z-50">
+            <div className="fixed bottom-24 right-6 z-40">
+              {/* Add pulsing background */}
+              <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75"></div>
+              
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-blue-600 text-white rounded-full shadow-lg w-16 h-16 flex items-center justify-center text-3xl focus:outline-none"
+                className="relative bg-blue-600 text-white rounded-full shadow-lg w-14 h-14 flex items-center justify-center text-3xl focus:outline-none"
                 onClick={() => setShowFabMenu(v => !v)}
                 aria-label="Open resource sections"
               >
@@ -568,15 +577,16 @@ const Resources: React.FC = () => {
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   className="inline-block"
                 >
-                  <Plus className="w-8 h-8" />
+                  <Plus className="w-6 h-6" />
                 </motion.span>
               </motion.button>
+              
               {showFabMenu && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
-                  className="absolute bottom-20 right-0 flex flex-col gap-3 bg-white rounded-xl shadow-lg p-4"
+                  className="absolute bottom-16 right-0 flex flex-col gap-3 bg-white rounded-xl shadow-lg p-4"
                 >
                   <Button variant="outline" onClick={() => { fetchSection('documentation'); setShowSectionModal('documentation'); setShowFabMenu(false); }}>Documentation</Button>
                   <Button variant="outline" onClick={() => { fetchSection('articles'); setShowSectionModal('articles'); setShowFabMenu(false); }}>Articles</Button>

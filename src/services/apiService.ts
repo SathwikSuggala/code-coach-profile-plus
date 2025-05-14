@@ -50,6 +50,53 @@ interface NewQuestionData {
   }[];
 }
 
+interface LeetCodeContest {
+  attended: boolean;
+  trendDirection: 'UP' | 'DOWN';
+  problemsSolved: number;
+  totalProblems: number;
+  finishTimeInSeconds: number;
+  rating: number;
+  ranking: number;
+  contest: {
+    title: string;
+    startTime: number;
+  };
+}
+
+interface CodeForcesContest {
+  contestId: number;
+  contestName: string;
+  handle: string;
+  rank: number;
+  ratingUpdateTimeSeconds: number;
+  oldRating: number;
+  newRating: number;
+}
+
+interface CodeForcesUser {
+  lastName: string;
+  country: string;
+  lastOnlineTimeSeconds: number;
+  city: string;
+  rating: number;
+  friendOfCount: number;
+  titlePhoto: string;
+  handle: string;
+  avatar: string;
+  firstName: string;
+  contribution: number;
+  rank: string;
+  maxRating: number;
+  registrationTimeSeconds: number;
+  maxRank: string;
+}
+
+interface CodeForcesContestsResponse {
+  status: string;
+  result: CodeForcesUser[];
+}
+
 export const apiService = {
   // Authentication APIs
   register: async (data: RegisterData): Promise<RegisterResponse> => {
@@ -415,7 +462,12 @@ export const apiService = {
   },
   
   // Quiz APIs
-  generateQuiz: async (topic: string, subTopic: string | null, numQuestions: number): Promise<any> => {
+  generateQuiz: async (
+    topic: string, 
+    subTopic: string | null, 
+    numQuestions: number,
+    questionType: string
+  ): Promise<any> => {
     try {
       const token = localStorage.getItem("jwt");
       if (!token) throw new Error("No authentication token found");
@@ -430,7 +482,7 @@ export const apiService = {
           topic,
           subTopic,
           numQuestions,
-          questionType: "mcq"
+          questionType
         }),
       });
       
@@ -526,6 +578,156 @@ export const apiService = {
     } catch (error) {
       console.error("Get topics learned error:", error);
       toast.error("Failed to get topics learned data: " + (error as Error).message);
+      throw error;
+    }
+  },
+
+  getLeetCodeStats: async (): Promise<any> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/leetcode`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Get LeetCode stats error:", error);
+      throw error;
+    }
+  },
+
+  getContestRatings: async (): Promise<any> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/user/contestRating`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Get contest ratings error:", error);
+      throw error;
+    }
+  },
+
+  getLeetCodeCalendar: async (): Promise<any> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/leetcode/calenderonly`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Get LeetCode calendar error:", error);
+      throw error;
+    }
+  },
+
+  getLeetCodeAttendedContests: async (): Promise<LeetCodeContest[]> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/leetcode/attendedContest`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+      });
+      
+      if (response.status === 401) {
+        toast.error("Session expired. Please login again.");
+        // You might want to redirect to login page here
+        throw new Error("Unauthorized");
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Get LeetCode attended contests error:", error);
+      toast.error("Failed to fetch LeetCode attended contests");
+      throw error;
+    }
+  },
+
+  getCodeForcesContests: async (): Promise<CodeForcesContest[]> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/codeforces/rating`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Get CodeForces contests error:", error);
+      toast.error("Failed to fetch CodeForces contests");
+      throw error;
+    }
+  },
+
+  getCodeForcesAvailableContests: async (): Promise<CodeForcesContestsResponse> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/codeforces/contests`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Get CodeForces available contests error:", error);
+      toast.error("Failed to fetch CodeForces available contests");
       throw error;
     }
   },
