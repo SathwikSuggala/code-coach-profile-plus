@@ -631,7 +631,7 @@ export const apiService = {
       const token = localStorage.getItem("jwt");
       if (!token) throw new Error("No authentication token found");
       
-      const response = await fetch(`${API_BASE_URL}/leetcode/calenderonly`, {
+      const response = await fetch(`${API_BASE_URL}/monthly-submissions`, {
         headers: {
           "Authorization": `Bearer ${token}`,
         },
@@ -728,6 +728,41 @@ export const apiService = {
     } catch (error) {
       console.error("Get CodeForces available contests error:", error);
       toast.error("Failed to fetch CodeForces available contests");
+      throw error;
+    }
+  },
+
+  getCombinedMonthlySubmissions: async (): Promise<{
+    labels: string[];
+    LeetCode: number[];
+    Codeforces: number[];
+  }> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/monthWiseTotalSubmissions`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+      });
+      
+      if (response.status === 403) {
+        toast.error("Access forbidden. Please check your permissions.");
+        throw new Error("Forbidden");
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Get combined monthly submissions error:", error);
+      toast.error("Failed to fetch combined monthly submissions");
       throw error;
     }
   },

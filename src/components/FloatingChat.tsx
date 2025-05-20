@@ -5,11 +5,25 @@ import { Input } from "@/components/ui/input";
 import { MessageSquare, X, PlusCircle } from "lucide-react";
 import { API_BASE_URL } from "@/services/apiService";
 import { toast } from "sonner";
+import { useLocation } from "react-router-dom";
 
 interface Message {
   participantType: string;
   response: string;
 }
+
+const TypingIndicator = () => {
+  return (
+    <div className="flex items-center space-x-2 p-3 bg-gray-100 rounded-lg w-fit">
+      <div className="flex space-x-1">
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+      </div>
+      <span className="text-sm text-gray-500">Assistant is typing...</span>
+    </div>
+  );
+};
 
 const FloatingChat = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,6 +32,7 @@ const FloatingChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -66,6 +81,14 @@ const FloatingChat = () => {
       fetchRecentSession();
     }
   }, [isOpen]);
+
+  // Check if current route is login or register
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+
+  // Don't render anything on auth pages
+  if (isAuthPage) {
+    return null;
+  }
 
   const createNewSession = async () => {
     try {
@@ -134,7 +157,7 @@ const FloatingChat = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed bottom-24 right-4 z-50">
       {!isOpen ? (
         <Button
           onClick={() => setIsOpen(true)}
@@ -187,6 +210,11 @@ const FloatingChat = () => {
                     </div>
                   </div>
                 ))}
+                {isLoading && (
+                  <div className="mb-4 text-left">
+                    <TypingIndicator />
+                  </div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
               <div className="flex gap-2">

@@ -68,20 +68,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(true);
       const response = await apiService.login({ userName, password });
       
+      // Store the JWT token
+      localStorage.setItem("jwt", response.jwt);
+      localStorage.setItem("role", response.role);
+      
       // Fetch user data after successful login
       const userData = await apiService.getUserInfo();
       
+      // Update all state at once
       setUser(userData);
       setRole(response.role);
       setIsAuthenticated(true);
-      localStorage.setItem("role", response.role);
+      
+      // Navigate after state updates
       if (response.role === "ROLE_ADMIN") {
-        navigate("/admin-home");
+        navigate("/admin-home", { replace: true });
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       }
     } catch (error) {
       console.error("Login error:", error);
+      // Clear any partial state on error
+      localStorage.removeItem("jwt");
+      localStorage.removeItem("role");
+      setUser(null);
+      setRole(null);
+      setIsAuthenticated(false);
       throw error;
     } finally {
       setIsLoading(false);
@@ -109,11 +121,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
-    apiService.logout();
-    setIsAuthenticated(false);
-    setUser(null);
-    setRole(null);
-    navigate("/login");
+    try {
+      // Clear all state first
+      setIsAuthenticated(false);
+      setUser(null);
+      setRole(null);
+      
+      // Clear localStorage
+      localStorage.removeItem("jwt");
+      localStorage.removeItem("role");
+      localStorage.removeItem("username");
+      
+      // Navigate to login page with replace
+      navigate("/login", { replace: true });
+      
+      // Show success message
+      toast.success("Logged out successfully!");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Error during logout");
+    }
   };
 
   return (

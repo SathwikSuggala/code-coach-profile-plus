@@ -90,6 +90,12 @@ interface CalendarData {
   }[];
 }
 
+interface CombinedMonthlySubmissions {
+  labels: string[];
+  LeetCode: number[];
+  Codeforces: number[];
+}
+
 const CodingStats = () => {
   const [leetCodeStats, setLeetCodeStats] = useState<LeetCodeStats | null>(null);
   const [contestRatings, setContestRatings] = useState<ContestRating | null>(null);
@@ -97,18 +103,28 @@ const CodingStats = () => {
   const [attendedContests, setAttendedContests] = useState<LeetCodeContest[]>([]);
   const [codeForcesContests, setCodeForcesContests] = useState<CodeForcesContest[]>([]);
   const [availableContests, setAvailableContests] = useState<CodeForcesUser[]>([]);
+  const [combinedSubmissions, setCombinedSubmissions] = useState<CombinedMonthlySubmissions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [leetCodeData, contestData, calendarData, attendedContestsData, codeForcesData, availableContestsData] = await Promise.all([
+        const [
+          leetCodeData, 
+          contestData, 
+          calendarData, 
+          attendedContestsData, 
+          codeForcesData, 
+          availableContestsData,
+          combinedSubmissionsData
+        ] = await Promise.all([
           apiService.getLeetCodeStats(),
           apiService.getContestRatings(),
           apiService.getLeetCodeCalendar(),
           apiService.getLeetCodeAttendedContests(),
           apiService.getCodeForcesContests(),
-          apiService.getCodeForcesAvailableContests()
+          apiService.getCodeForcesAvailableContests(),
+          apiService.getCombinedMonthlySubmissions()
         ]);
 
         console.log('Calendar Data:', calendarData);
@@ -119,6 +135,7 @@ const CodingStats = () => {
         setAttendedContests(attendedContestsData);
         setCodeForcesContests(codeForcesData);
         setAvailableContests(availableContestsData.result);
+        setCombinedSubmissions(combinedSubmissionsData);
       } catch (error) {
         console.error("Error fetching coding stats:", error);
         toast.error("Failed to load coding statistics");
@@ -129,6 +146,57 @@ const CodingStats = () => {
 
     fetchData();
   }, []);
+
+  const renderMonthLabels = (weeks) => {
+    if (!calendarData?.months) return null;
+
+    // Get the start date of the heatmap
+    const today = new Date();
+    const heatmapStartDate = new Date(today);
+    heatmapStartDate.setFullYear(today.getFullYear() - 1);
+
+    // Find the week index for each month start
+    const displayedWeeks = weeks.length;
+    const monthLabels = [];
+
+    calendarData.months.forEach((month) => {
+      // Get the year for this month
+      const currentYear = today.getFullYear();
+      const monthIndex = new Date(`${month.name} 1, ${currentYear}`).getMonth();
+      const year = monthIndex > today.getMonth() ? currentYear - 1 : currentYear;
+      const monthStartDate = new Date(`${month.name} 1, ${year}`);
+
+      // Calculate the week index from the heatmap start
+      const diffDays = Math.floor((monthStartDate.getTime() - heatmapStartDate.getTime()) / (1000 * 60 * 60 * 24));
+      const weekIdx = Math.floor(diffDays / 7);
+
+      if (weekIdx >= 0 && weekIdx < displayedWeeks) {
+        // Calculate left offset as a percentage
+        const leftPercent = (weekIdx / displayedWeeks) * 100;
+        monthLabels.push(
+          <span
+            key={month.name + year}
+            className="text-xs text-gray-500"
+            style={{
+              position: 'absolute',
+              left: `${leftPercent}%`,
+              whiteSpace: 'nowrap',
+              transform: 'none',
+              minWidth: '1px',
+            }}
+          >
+            {month.name.slice(0, 3)}
+          </span>
+        );
+      }
+    });
+
+    return (
+      <div style={{ position: 'relative', height: '16px', width: '100%', marginTop: '8px' }}>
+        {monthLabels}
+      </div>
+    );
+  };
 
   const renderHeatMap = () => {
     if (!calendarData?.months) return null;
@@ -194,28 +262,27 @@ const CodingStats = () => {
             </div>
           ))}
         </div>
-        <div className="flex gap-1">
+        <div
+          className="w-full"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${weeks.length}, 1fr)`,
+            gap: '2px',
+          }}
+        >
           {weeks.map((week, weekIndex) => (
-            <div key={weekIndex} className="flex flex-col gap-1">
+            <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {week.map((day, dayIndex) => (
                 <div
                   key={dayIndex}
-                  className={`w-3 h-3 ${getColorIntensity(day.submissions)} rounded-sm`}
+                  className={`w-4 h-4 ${getColorIntensity(day.submissions)} rounded-sm`}
                   title={`${format(day.date, 'MMM d, yyyy')}: ${day.submissions} submissions`}
                 />
               ))}
             </div>
           ))}
         </div>
-        <div className="flex items-center justify-end gap-2 text-xs text-gray-500">
-          <span>Less</span>
-          <div className="flex gap-1">
-            {['bg-green-300', 'bg-green-400', 'bg-green-500', 'bg-green-600', 'bg-green-700'].map((color, index) => (
-              <div key={index} className={`w-3 h-3 ${color} rounded-sm`} />
-            ))}
-          </div>
-          <span>More</span>
-        </div>
+        {renderMonthLabels(weeks)}
       </div>
     );
   };
@@ -271,6 +338,36 @@ const CodingStats = () => {
                 </div>
                 <span>More</span>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Combined Monthly Submissions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Monthly Submissions</CardTitle>
+            <CardDescription>Combined submissions from LeetCode and CodeForces</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={combinedSubmissions?.labels.map((label, index) => ({
+                    month: label,
+                    LeetCode: combinedSubmissions.LeetCode[index],
+                    Codeforces: combinedSubmissions.Codeforces[index]
+                  }))}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="LeetCode" fill="#8884d8" />
+                  <Bar dataKey="Codeforces" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>

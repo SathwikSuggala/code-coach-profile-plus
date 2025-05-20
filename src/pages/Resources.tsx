@@ -561,9 +561,9 @@ const Resources: React.FC = () => {
             {renderResourceSections()}
             {renderResourceCards()}
             {/* Floating Action Button */}
-            <div className="fixed bottom-24 right-6 z-40">
+            <div className="fixed top-20 right-6 z-40 mb-4">
               {/* Add pulsing background */}
-              <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75"></div>
+              <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75 w-14 h-14"></div>
               
               <motion.button
                 whileHover={{ scale: 1.1 }}
@@ -571,6 +571,7 @@ const Resources: React.FC = () => {
                 className="relative bg-blue-600 text-white rounded-full shadow-lg w-14 h-14 flex items-center justify-center text-3xl focus:outline-none"
                 onClick={() => setShowFabMenu(v => !v)}
                 aria-label="Open resource sections"
+                style={{ marginBottom: '1rem' }}
               >
                 <motion.span
                   animate={{ rotate: showFabMenu ? 125 : 0 }}
@@ -586,7 +587,7 @@ const Resources: React.FC = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
-                  className="absolute bottom-16 right-0 flex flex-col gap-3 bg-white rounded-xl shadow-lg p-4"
+                  className="absolute top-16 right-0 flex flex-col gap-3 bg-white rounded-xl shadow-lg p-4"
                 >
                   <Button variant="outline" onClick={() => { fetchSection('documentation'); setShowSectionModal('documentation'); setShowFabMenu(false); }}>Documentation</Button>
                   <Button variant="outline" onClick={() => { fetchSection('articles'); setShowSectionModal('articles'); setShowFabMenu(false); }}>Articles</Button>

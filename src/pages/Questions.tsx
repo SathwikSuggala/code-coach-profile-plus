@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Layout from "../components/Layout";
 import { apiService, API_BASE_URL } from "../services/apiService";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, Code, FileText, Play, CheckSquare, Lightbulb } from "lucide-react";
+import { CheckCircle, Code, FileText, Play, CheckSquare, Lightbulb, ChevronDown, ChevronUp, ChevronRight, ChevronLeft } from "lucide-react";
 import { useNavigate, useParams } from 'react-router-dom';
 import ResourceLoadingAnimation from '../components/ResourceLoadingAnimation';
 
@@ -47,6 +47,11 @@ interface QuestionDetail {
   questionDescription: string;
   constraints: string[];
   sampleTestCases: {
+    input: string;
+    output: string;
+    explanation?: string;
+  }[];
+  actualTestCases: {
     input: string;
     output: string;
     explanation?: string;
@@ -75,6 +80,7 @@ const Questions = () => {
   const [solvedFilter, setSolvedFilter] = useState("all");
   const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   const [codeInput, setCodeInput] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState('cpp');
   const [activeTab, setActiveTab] = useState("description");
   const [submitResult, setSubmitResult] = useState<{success: boolean; output?: string; error?: string} | null>(null);
   const navigate = useNavigate();
@@ -173,35 +179,6 @@ const Questions = () => {
     }
   };
 
-  const handleRunCode = () => {
-    if (!codeInput.trim()) {
-      toast.error("Please enter some code to run");
-      return;
-    }
-    
-    // Simulate code execution (in a real app, this would send the code to a backend)
-    setIsLoading(true);
-    setTimeout(() => {
-      const hasError = Math.random() > 0.7;
-      
-      if (hasError) {
-        setSubmitResult({
-          success: false,
-          error: "Runtime error: null pointer exception at line 5"
-        });
-        toast.error("Code execution failed");
-      } else {
-        setSubmitResult({
-          success: true,
-          output: "All test cases passed!"
-        });
-        toast.success("Code executed successfully!");
-      }
-      
-      setIsLoading(false);
-    }, 1500);
-  };
-
   const handleSubmitCode = () => {
     if (!codeInput.trim()) {
       toast.error("Please enter some code to submit");
@@ -249,31 +226,45 @@ const Questions = () => {
     }
   };
 
-  const getDefaultCode = (lang = "java") => {
-    if (lang === "java") {
-      return `class Solution {
-    public int solve(String s) {
-        // Write your solution here
-        return 0;
+  const getDefaultCode = (lang: string) => {
+    switch (lang) {
+      case 'cpp':
+        return `#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    return 0;
+}`;
+      case 'java':
+        return `public class Solution {
+    public static void main(String[] args) {
     }
 }`;
+      case 'python':
+        return `def solve():
+    pass`;
+      default:
+        return '';
     }
-    if (lang === "python") {
-      return `def solve(s):
-    # Write your solution here
-    return 0`;
+  };
+
+  // Add tab support handler
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const textarea = e.currentTarget;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      
+      // Insert 4 spaces at cursor position
+      const newValue = codeInput.substring(0, start) + '    ' + codeInput.substring(end);
+      setCodeInput(newValue);
+      
+      // Set cursor position after the inserted spaces
+      const newCursorPos = start + 4;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
     }
-    if (lang === "javascript") {
-      return `/**
- * @param {string} s
- * @return {number}
- */
-var solve = function(s) {
-    // Write your solution here
-    return 0;
-};`;
-    }
-    return "// Write your solution here";
   };
 
   return (
@@ -403,25 +394,27 @@ const QuestionDetail = () => {
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [showPulse, setShowPulse] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+  const [testResults, setTestResults] = useState<Record<number, { passed: boolean; actualOutput: string }>>({});
+  const [isTestCasesOpen, setIsTestCasesOpen] = useState(true);
+  const [testCasesHeight, setTestCasesHeight] = useState(300);
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(true);
+  const [descriptionWidth, setDescriptionWidth] = useState(500);
+  const isResizing = useRef(false);
+  const startY = useRef(0);
+  const startHeight = useRef(0);
+  const isDescriptionResizing = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
 
-  // Add typing inactivity timer
+  // Handle cursor position after code input changes
   useEffect(() => {
-    let typingTimer: NodeJS.Timeout;
-    
-    if (isTyping) {
-      setShowPulse(false);
-      typingTimer = setTimeout(() => {
-        setIsTyping(false);
-        setShowPulse(true);
-      }, 5000); // 5 seconds
+    if (cursorPosition !== null && textareaRef.current) {
+      textareaRef.current.setSelectionRange(cursorPosition, cursorPosition);
+      setCursorPosition(null);
     }
-
-    return () => {
-      if (typingTimer) {
-        clearTimeout(typingTimer);
-      }
-    };
-  }, [isTyping, codeInput]);
+  }, [codeInput, cursorPosition]);
 
   useEffect(() => {
     const fetchQuestion = async () => {
@@ -446,55 +439,128 @@ const QuestionDetail = () => {
     switch (lang) {
       case 'cpp':
         return `#include <iostream>
+#include <string>
 using namespace std;
 
 int main() {
-    // Write your solution here
     return 0;
 }`;
       case 'java':
         return `public class Solution {
     public static void main(String[] args) {
-        // Write your solution here
     }
 }`;
       case 'python':
-        return `# Write your solution here
-def solve():
+        return `def solve():
     pass`;
       default:
-        return '// Write your solution here';
+        return '';
     }
   };
 
-  const handleRunCode = () => {
+  const handleRunCode = async () => {
     if (!codeInput.trim()) {
       toast.error("Please enter some code to run");
       return;
     }
-    setIsLoading(true);
-    setTimeout(() => {
-      setSubmitResult({
-        success: true,
-        output: "All test cases passed!"
-      });
-      setIsLoading(false);
-    }, 1500);
-  };
+    if (!question) return;
 
-  const handleSubmitCode = () => {
-    if (!codeInput.trim()) {
-      toast.error("Please enter some code to submit");
-      return;
-    }
     setIsLoading(true);
-    setTimeout(() => {
+    const results: { input: string; expected: string; actual: string; passed: boolean }[] = [];
+    const newTestResults: Record<number, { passed: boolean; actualOutput: string }> = {};
+
+    try {
+      // Run against all actual test cases
+      for (let i = 0; i < question.actualTestCases.length; i++) {
+        const testCase = question.actualTestCases[i];
+        const formData = new URLSearchParams();
+        formData.append('code', codeInput);
+        formData.append('input', testCase.input);
+        formData.append('language', selectedLanguage.toLowerCase());
+
+        console.log('Sending request with:', {
+          code: codeInput,
+          input: testCase.input,
+          language: selectedLanguage.toLowerCase()
+        });
+
+        const response = await fetch('https://capstonecompiler.onrender.com/run_single', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: formData
+        });
+
+        const data = await response.json();
+        console.log('API Response:', data);
+        
+        if (!response.ok || data.error) {
+          throw new Error(data.error || data.message || `Server error: ${response.status}`);
+        }
+        
+        if (data.message === "Code executed successfully") {
+          const actualOutput = data.output.trim();
+          const expectedOutput = testCase.output.trim();
+          const passed = actualOutput === expectedOutput;
+          
+          console.log('Test case result:', {
+            input: testCase.input,
+            expected: expectedOutput,
+            actual: actualOutput,
+            passed
+          });
+          
+          results.push({
+            input: testCase.input,
+            expected: expectedOutput,
+            actual: actualOutput,
+            passed
+          });
+
+          // Store individual test case result with actual output using the current index
+          newTestResults[i] = {
+            passed,
+            actualOutput
+          };
+        } else {
+          throw new Error(data.message || 'Failed to execute code');
+        }
+      }
+
+      // Check if all test cases passed
+      const allPassed = results.every(result => result.passed);
+      
       setSubmitResult({
-        success: true,
-        output: "All test cases passed! Great job!"
+        success: allPassed,
+        output: allPassed 
+          ? "All test cases passed!" 
+          : `Failed ${results.filter(r => !r.passed).length} test case(s):\n\n${
+              results.map((result, index) => 
+                `Test Case ${index + 1}:\nInput: ${result.input}\nExpected: ${result.expected}\nActual: ${result.actual}\n`
+              ).join('\n')
+            }`
       });
+
+      // Update test results
+      setTestResults(newTestResults);
+
+      if (allPassed) {
+        toast.success("All test cases passed!");
+      } else {
+        toast.error("Some test cases failed");
+      }
+    } catch (error) {
+      console.error("Error running code:", error);
+      setSubmitResult({
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to execute code"
+      });
+      setIsTestCasesOpen(false);
+      toast.error("Failed to execute code");
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const handleGetSuggestion = async () => {
@@ -538,6 +604,95 @@ def solve():
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const textarea = e.currentTarget;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      
+      // Insert 4 spaces at cursor position
+      const newValue = codeInput.substring(0, start) + '    ' + codeInput.substring(end);
+      setCodeInput(newValue);
+      setCursorPosition(start + 4);
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isResizing.current = true;
+    startY.current = e.clientY;
+    startHeight.current = testCasesHeight;
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing.current) return;
+    const deltaY = startY.current - e.clientY;
+    const newHeight = Math.max(100, Math.min(600, startHeight.current + deltaY)); // Min 100px, max 600px
+    setTestCasesHeight(newHeight);
+  };
+
+  const handleMouseUp = () => {
+    isResizing.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleSubmitCode = async () => {
+    if (!codeInput.trim()) {
+      toast.error("Please enter some code to submit");
+      return;
+    }
+    if (!question) return;
+
+    // Check if code has been run at least once
+    if (Object.keys(testResults).length === 0) {
+      toast.error("Please run your code at least once before submitting");
+      return;
+    }
+
+    // Check if all test cases have passed
+    const allTestsPassed = Object.values(testResults).every(result => result.passed);
+    if (!allTestsPassed) {
+      toast.error("Please pass all test cases before submitting");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await apiService.markQuestionSolved(question.questionId);
+      toast.success("Question submitted successfully!");
+      navigate('/questions');
+    } catch (error) {
+      console.error("Error submitting code:", error);
+      toast.error("Failed to submit code");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDescriptionMouseDown = (e: React.MouseEvent) => {
+    isDescriptionResizing.current = true;
+    startX.current = e.clientX;
+    startWidth.current = descriptionWidth;
+    document.addEventListener('mousemove', handleDescriptionMouseMove);
+    document.addEventListener('mouseup', handleDescriptionMouseUp);
+  };
+
+  const handleDescriptionMouseMove = (e: MouseEvent) => {
+    if (!isDescriptionResizing.current) return;
+    const deltaX = e.clientX - startX.current;
+    const newWidth = Math.max(300, Math.min(800, startWidth.current + deltaX));
+    setDescriptionWidth(newWidth);
+  };
+
+  const handleDescriptionMouseUp = () => {
+    isDescriptionResizing.current = false;
+    document.removeEventListener('mousemove', handleDescriptionMouseMove);
+    document.removeEventListener('mouseup', handleDescriptionMouseUp);
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -563,18 +718,18 @@ def solve():
               <h1 className="text-2xl font-bold">{question.questionName}</h1>
               <p className="text-gray-600">Question #{question.questionId}</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col md:flex-row items-end md:items-center gap-2 md:gap-4">
               <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder="Language" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cpp">C++</SelectItem>
+                  <SelectItem value="cpp">Cpp</SelectItem>
                   <SelectItem value="java">Java</SelectItem>
                   <SelectItem value="python">Python</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" onClick={() => navigate('/questions')}>
+              <Button variant="outline" onClick={() => navigate('/questions')} className="px-3 py-1 md:px-4 md:py-2 text-sm">
                 Back to Questions
               </Button>
             </div>
@@ -582,43 +737,76 @@ def solve():
         </div>
 
         {/* Main Content - Side by Side Layout */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex flex-1">
           {/* Left Side - Description */}
-          <div className="w-1/2 border-r overflow-auto p-4">
-            <div className="space-y-6">
-              <div>
+          {isDescriptionOpen && (
+            <div 
+              className="border-r overflow-auto relative"
+              style={{ width: `${descriptionWidth}px` }}
+            >
+              <div className="flex items-center justify-between p-4 border-b">
                 <h3 className="font-semibold">Description</h3>
-                <p className="mt-2 text-gray-700">{question.questionDescription}</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsDescriptionOpen(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
+              <div className="p-4">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-semibold">Description</h3>
+                    <p className="mt-2 text-gray-700">{question.questionDescription}</p>
+                  </div>
 
-              <div>
-                <h3 className="font-semibold">Constraints</h3>
-                <ul className="list-disc list-inside mt-2">
-                  {question.constraints.map((constraint, index) => (
-                    <li key={index}>{constraint}</li>
-                  ))}
-                </ul>
-              </div>
+                  <div>
+                    <h3 className="font-semibold">Constraints</h3>
+                    <ul className="list-disc list-inside mt-2">
+                      {question.constraints.map((constraint, index) => (
+                        <li key={index}>{constraint}</li>
+                      ))}
+                    </ul>
+                  </div>
 
-              <div>
-                <h3 className="font-semibold">Sample Test Cases</h3>
-                <div className="space-y-4 mt-2">
-                  {question.sampleTestCases.map((testCase, index) => (
-                    <div key={index} className="bg-gray-50 p-4 rounded-md">
-                      <div><strong>Input:</strong> {testCase.input}</div>
-                      <div><strong>Output:</strong> {testCase.output}</div>
-                      {testCase.explanation && (
-                        <div><strong>Explanation:</strong> {testCase.explanation}</div>
-                      )}
+                  <div>
+                    <h3 className="font-semibold">Sample Test Cases</h3>
+                    <div className="space-y-4 mt-2">
+                      {question.sampleTestCases.map((testCase, index) => (
+                        <div key={index} className="bg-gray-50 p-4 rounded-md">
+                          <div><strong>Input:</strong> {testCase.input}</div>
+                          <div><strong>Output:</strong> {testCase.output}</div>
+                          {testCase.explanation && (
+                            <div><strong>Explanation:</strong> {testCase.explanation}</div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
+              {/* Resize handle */}
+              <div
+                className="absolute top-0 bottom-0 right-0 w-1 cursor-ew-resize hover:bg-blue-500"
+                onMouseDown={handleDescriptionMouseDown}
+              />
             </div>
-          </div>
+          )}
+          {!isDescriptionOpen && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsDescriptionOpen(true)}
+              className="h-8 w-8 p-0 m-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
 
           {/* Right Side - Code Editor */}
-          <div className="w-1/2 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-auto min-h-[400px]">
             <div className="flex justify-between gap-2 p-4 border-b">
               <Button 
                 variant="outline" 
@@ -640,11 +828,13 @@ def solve():
             </div>
             <div className="flex-1 overflow-auto">
               <Textarea
+                ref={textareaRef}
                 value={codeInput}
                 onChange={(e) => {
                   setCodeInput(e.target.value);
                   setIsTyping(true);
                 }}
+                onKeyDown={handleKeyDown}
                 className="h-full font-mono text-sm resize-none"
               />
             </div>
@@ -658,6 +848,82 @@ def solve():
                 </pre>
               </div>
             )}
+
+            {/* Test Cases Section */}
+            <div className="border-t">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="font-semibold">Test Cases</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsTestCasesOpen(!isTestCasesOpen)}
+                  className="h-8 w-8 p-0"
+                >
+                  {isTestCasesOpen ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronUp className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              {isTestCasesOpen && (
+                <div 
+                  className="relative"
+                  style={{ height: `${testCasesHeight}px` }}
+                >
+                  <div className="absolute inset-0 overflow-auto">
+                    <div className="p-4">
+                      <Tabs defaultValue="0" className="w-full">
+                        <TabsList className="w-full justify-start">
+                          {question.actualTestCases.map((_, index) => (
+                            <TabsTrigger key={index} value={index.toString()}>
+                              Test Case {index + 1}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+                        {question.actualTestCases.map((testCase, index) => (
+                          <TabsContent key={index} value={index.toString()}>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className="font-medium">Test Case {index + 1}</h4>
+                                {submitResult && (
+                                  <Badge variant={testResults[index]?.passed ? "default" : "destructive"}>
+                                    {testResults[index]?.passed ? "Passed" : "Failed"}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="space-y-2 text-sm">
+                                <div>
+                                  <span className="font-medium">Input:</span>
+                                  <pre className="mt-1 bg-gray-100 p-2 rounded">{testCase.input}</pre>
+                                </div>
+                                <div>
+                                  <span className="font-medium">Expected Output:</span>
+                                  <pre className="mt-1 bg-gray-100 p-2 rounded">{testCase.output}</pre>
+                                </div>
+                                {submitResult && testResults[index] && (
+                                  <div>
+                                    <span className="font-medium">Your Output:</span>
+                                    <pre className={`mt-1 bg-gray-100 p-2 rounded ${testResults[index].passed ? 'text-green-600' : 'text-red-600'}`}>
+                                      {testResults[index].actualOutput}
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </TabsContent>
+                        ))}
+                      </Tabs>
+                    </div>
+                  </div>
+                  {/* Resize handle */}
+                  <div
+                    className="absolute top-0 left-0 right-0 h-1 cursor-ew-resize hover:bg-blue-500"
+                    onMouseDown={handleMouseDown}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
