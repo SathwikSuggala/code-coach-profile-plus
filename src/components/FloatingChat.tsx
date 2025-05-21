@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, X, PlusCircle } from "lucide-react";
+import { MessageSquare, X, PlusCircle, Maximize2 } from "lucide-react";
 import { API_BASE_URL } from "@/services/apiService";
 import { toast } from "sonner";
 import { useLocation } from "react-router-dom";
@@ -25,6 +25,32 @@ const TypingIndicator = () => {
   );
 };
 
+const formatMessage = (message: string) => {
+  // Check if the message starts with backticks for code blocks
+  if (message.trim().startsWith('```')) {
+    // Extract the code block by removing both opening and closing backticks
+    const codeBlock = message
+      .replace(/^```\w*\n/, '') // Remove opening backticks and language identifier
+      .replace(/\n?```$/, '');  // Remove closing backticks
+    return (
+      <pre className="bg-gray-800 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-sm">
+        {codeBlock}
+      </pre>
+    );
+  }
+
+  // Handle markdown formatting
+  let formattedMessage = message
+    // Convert bold text (text between **)
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Convert inline code (text between `)
+    .replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-sm">$1</code>')
+    // Convert bullet points
+    .replace(/^\s*\*\s/gm, '• ');
+
+  return <div dangerouslySetInnerHTML={{ __html: formattedMessage }} />;
+};
+
 const FloatingChat = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -33,6 +59,10 @@ const FloatingChat = () => {
   const [sessionId, setSessionId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const [dimensions, setDimensions] = useState({ width: 400, height: 500 });
+  const isResizing = useRef(false);
+  const startPos = useRef({ x: 0, y: 0 });
+  const startDim = useRef({ width: 0, height: 0 });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -156,6 +186,32 @@ const FloatingChat = () => {
     }
   };
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isResizing.current = true;
+    startPos.current = { x: e.clientX, y: e.clientY };
+    startDim.current = { width: dimensions.width, height: dimensions.height };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing.current) return;
+
+    const deltaX = e.clientX - startPos.current.x;
+    const deltaY = e.clientY - startPos.current.y;
+
+    setDimensions({
+      width: Math.max(300, startDim.current.width - deltaX),
+      height: Math.max(400, startDim.current.height - deltaY)
+    });
+  };
+
+  const handleMouseUp = () => {
+    isResizing.current = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <div className="fixed bottom-24 right-4 z-50">
       {!isOpen ? (
@@ -166,7 +222,14 @@ const FloatingChat = () => {
           <MessageSquare className="w-6 h-6" />
         </Button>
       ) : (
-        <Card className="w-[400px] shadow-xl">
+        <Card 
+          className="shadow-xl relative"
+          style={{ 
+            width: dimensions.width, 
+            height: dimensions.height,
+            transition: isResizing.current ? 'none' : 'all 0.2s ease'
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-lg font-bold">Chat Assistant</CardTitle>
             <div className="flex items-center gap-2">
@@ -189,53 +252,57 @@ const FloatingChat = () => {
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="h-[300px] overflow-y-auto border rounded-lg p-4">
-                {messages.map((message, index) => (
+          <CardContent className="flex flex-col h-[calc(100%-60px)]">
+            <div className="flex-1 overflow-y-auto border rounded-lg p-4 mb-4">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`mb-4 ${
+                    message.participantType === "USER" ? "text-right" : "text-left"
+                  }`}
+                >
                   <div
-                    key={index}
-                    className={`mb-4 ${
-                      message.participantType === "USER" ? "text-right" : "text-left"
+                    className={`inline-block p-3 rounded-lg ${
+                      message.participantType === "USER"
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-200 text-gray-800"
                     }`}
                   >
-                    <div
-                      className={`inline-block p-3 rounded-lg ${
-                        message.participantType === "USER"
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-200 text-gray-800"
-                      }`}
-                    >
-                      {message.response}
-                    </div>
+                    {formatMessage(message.response)}
                   </div>
-                ))}
-                {isLoading && (
-                  <div className="mb-4 text-left">
-                    <TypingIndicator />
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  placeholder="Type your message..."
-                  className="flex-1"
-                />
-                <Button onClick={handleSendMessage} disabled={isLoading}>
-                  Send
-                </Button>
-              </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="mb-4 text-left">
+                  <TypingIndicator />
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                placeholder="Type your message..."
+                className="flex-1"
+              />
+              <Button onClick={handleSendMessage} disabled={isLoading}>
+                Send
+              </Button>
             </div>
           </CardContent>
+          <div
+            className="absolute bottom-0 left-0 w-6 h-6 cursor-se-resize flex items-center justify-center text-gray-400 hover:text-gray-600"
+            onMouseDown={handleMouseDown}
+          >
+            <Maximize2 className="w-4 h-4" />
+          </div>
         </Card>
       )}
     </div>

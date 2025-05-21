@@ -3,13 +3,14 @@ import Layout from "../components/Layout";
 import { apiService } from "../services/apiService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
   LineChart, Line, PieChart, Pie, Cell, Legend 
 } from 'recharts';
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
@@ -273,11 +274,18 @@ const CodingStats = () => {
           {weeks.map((week, weekIndex) => (
             <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {week.map((day, dayIndex) => (
-                <div
-                  key={dayIndex}
-                  className={`w-4 h-4 ${getColorIntensity(day.submissions)} rounded-sm`}
-                  title={`${format(day.date, 'MMM d, yyyy')}: ${day.submissions} submissions`}
-                />
+                <TooltipProvider key={dayIndex}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={`w-4 h-4 ${getColorIntensity(day.submissions)} rounded-sm cursor-pointer`}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{format(day.date, 'MMM d, yyyy')}: {day.submissions} submissions</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               ))}
             </div>
           ))}
