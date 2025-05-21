@@ -6,8 +6,7 @@ import { toast } from "sonner";
 import { CheckCircle, Award, TrendingUp, ChevronDown, ChevronUp, Info, BookOpen, ListChecks, Layers, Map, HelpCircle, Tag, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import ResourceLoadingAnimation from '../components/ResourceLoadingAnimation';
-
-const API_BASE_URL = "http://localhost:8080/api/readingMaterial";
+import { API_BASE_URL } from "../services/apiService";
 
 const skeleton = (
   <div className="animate-pulse space-y-2">
@@ -97,7 +96,7 @@ const Resources: React.FC = () => {
     try {
       const token = localStorage.getItem("jwt");
       if (!token) throw new Error("Not authenticated");
-      const res = await fetch(`${API_BASE_URL}/generateInfo/${encodeURIComponent(search)}`, {
+      const res = await fetch(`${API_BASE_URL}/readingMaterial/generateInfo/${encodeURIComponent(search)}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to fetch resources");
@@ -119,7 +118,7 @@ const Resources: React.FC = () => {
       const token = localStorage.getItem("jwt");
       if (!token) throw new Error("Not authenticated");
       if (section === "documentation" || section === "articles") {
-        const res = await fetch(`${API_BASE_URL}/generateDocumentations`, {
+        const res = await fetch(`${API_BASE_URL}/readingMaterial/generateDocumentations`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -135,7 +134,7 @@ const Resources: React.FC = () => {
           setArticles(data.filter((a: any) => !a.type || !a.type.toLowerCase().includes("doc")));
         }
       } else if (section === "youtube") {
-        const res = await fetch(`${API_BASE_URL}/searchYouTube`, {
+        const res = await fetch(`${API_BASE_URL}/readingMaterial/searchYouTube`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
