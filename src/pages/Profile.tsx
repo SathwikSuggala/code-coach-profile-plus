@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Layout from "../components/Layout";
-import { apiService } from "../services/apiService";
+import { apiService, API_BASE_URL } from "../services/apiService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -37,8 +37,6 @@ interface FormData {
   leetCodeUserName: string;
   codeForcesUserName: string;
 }
-
-const API_BASE_URL = "http://localhost:8080/api";
 
 const Profile = () => {
   const [user, setUser] = useState<any>(null);
