@@ -32,6 +32,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { motion } from "framer-motion";
+import { useForm } from "react-hook-form";
+import { useFieldArray } from "react-hook-form";
+import { FormField } from "@/components/ui/form";
 
 interface TestCase {
   input: string;
@@ -49,6 +52,14 @@ interface Question {
   topics: string[];
   questionDifficulty: string;
   questionSource: string;
+  questionSolutions?: Solution[];
+}
+
+interface Solution {
+  name: string;
+  explanation: string;
+  example: string;
+  code: string;
 }
 
 const defaultFormData: Question = {
@@ -82,15 +93,50 @@ const QuestionForm = React.memo(({
     setFormData(initialData);
   }, [initialData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Use useForm and useFieldArray within the modal for better form management
+  const form = useForm<Question>({
+    defaultValues: initialData,
+  });
+
+  const { fields: constraintFields, append: appendConstraint, remove: removeConstraint } =
+    useFieldArray({
+      control: form.control,
+      name: "constraints" as any
+    });
+
+  const { fields: sampleTestCaseFields, append: appendSampleTestCase, remove: removeSampleTestCase } =
+    useFieldArray<Question, "sampleTestCases">({
+      control: form.control,
+      name: "sampleTestCases"
+    });
+
+  const { fields: actualTestCaseFields, append: appendActualTestCase, remove: removeActualTestCase } =
+    useFieldArray<Question, "actualTestCases">({
+      control: form.control,
+      name: "actualTestCases"
+    });
+
+  const { fields: topicFields, append: appendTopic, remove: removeTopic } =
+    useFieldArray({
+      control: form.control,
+      name: "topics" as any
+    });
+
+  const { fields: solutionFields, append: appendSolution, remove: removeSolution } = 
+    useFieldArray<Question, "questionSolutions">({
+      control: form.control,
+      name: "questionSolutions"
+    });
+
+
+  const handleSubmit = form.handleSubmit(async (data) => {
     try {
-      await onSubmit(formData);
+      await onSubmit(data);
       onClose();
     } catch (error) {
       console.error("Form submission error:", error);
     }
-  };
+  });
 
   if (!isOpen) return null;
 
@@ -106,48 +152,41 @@ const QuestionForm = React.memo(({
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="name">Question Name</Label>
-            <Input
-              id="name"
-              value={formData.questionName}
-              onChange={(e) => setFormData(prev => ({ ...prev, questionName: e.target.value }))}
-              required
+            <FormField
+              control={form.control}
+              name="questionName"
+              render={({ field }) => (
+                <Input id="name" {...field} required />
+              )}
             />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.questionDescription}
-              onChange={(e) => setFormData(prev => ({ ...prev, questionDescription: e.target.value }))}
-              required
+            <FormField
+              control={form.control}
+              name="questionDescription"
+              render={({ field }) => (
+                <Textarea id="description" {...field} required />
+              )}
             />
           </div>
 
           <div className="grid gap-2">
             <Label>Constraints</Label>
-            {formData.constraints.map((constraint, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  value={constraint}
-                  onChange={(e) => {
-                    setFormData(prev => {
-                      const newConstraints = [...prev.constraints];
-                      newConstraints[index] = e.target.value;
-                      return { ...prev, constraints: newConstraints };
-                    });
-                  }}
-                  required
+            {constraintFields.map((field, index) => (
+              <div key={field.id} className="flex gap-2">
+                <FormField
+                  control={form.control}
+                  name={`constraints.${index}` as const}
+                  render={({ field }) => (
+                    <Input {...field} required />
+                  )}
                 />
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    setFormData(prev => ({
-                      ...prev,
-                      constraints: prev.constraints.filter((_, i) => i !== index)
-                    }));
-                  }}
+                  onClick={() => removeConstraint(index)}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -156,7 +195,7 @@ const QuestionForm = React.memo(({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setFormData(prev => ({ ...prev, constraints: [...prev.constraints, ""] }))}
+              onClick={() => appendConstraint("")}
             >
               Add Constraint
             </Button>
@@ -164,19 +203,14 @@ const QuestionForm = React.memo(({
 
           <div className="grid gap-2">
             <Label>Sample Test Cases</Label>
-            {formData.sampleTestCases.map((testCase, index) => (
-              <div key={index} className="grid gap-2 p-4 border rounded-lg">
+            {sampleTestCaseFields.map((field, index) => (
+              <div key={field.id} className="grid gap-2 p-4 border rounded-lg">
                 <div className="flex justify-between items-center">
                   <h4 className="font-medium">Test Case {index + 1}</h4>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        sampleTestCases: prev.sampleTestCases.filter((_, i) => i !== index)
-                      }));
-                    }}
+                    onClick={() => removeSampleTestCase(index)}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -184,44 +218,32 @@ const QuestionForm = React.memo(({
                 <div className="grid gap-2">
                   <div>
                     <Label>Input</Label>
-                    <Input
-                      value={testCase.input}
-                      onChange={(e) => {
-                        setFormData(prev => {
-                          const newTestCases = [...prev.sampleTestCases];
-                          newTestCases[index] = { ...newTestCases[index], input: e.target.value };
-                          return { ...prev, sampleTestCases: newTestCases };
-                        });
-                      }}
-                      required
+                    <FormField
+                      control={form.control}
+                      name={`sampleTestCases.${index}.input` as const}
+                      render={({ field }) => (
+                        <Input {...field} required />
+                      )}
                     />
                   </div>
                   <div>
                     <Label>Output</Label>
-                    <Input
-                      value={testCase.output}
-                      onChange={(e) => {
-                        setFormData(prev => {
-                          const newTestCases = [...prev.sampleTestCases];
-                          newTestCases[index] = { ...newTestCases[index], output: e.target.value };
-                          return { ...prev, sampleTestCases: newTestCases };
-                        });
-                      }}
-                      required
+                    <FormField
+                      control={form.control}
+                      name={`sampleTestCases.${index}.output` as const}
+                      render={({ field }) => (
+                        <Input {...field} required />
+                      )}
                     />
                   </div>
                   <div>
                     <Label>Explanation</Label>
-                    <Textarea
-                      value={testCase.explanation}
-                      onChange={(e) => {
-                        setFormData(prev => {
-                          const newTestCases = [...prev.sampleTestCases];
-                          newTestCases[index] = { ...newTestCases[index], explanation: e.target.value };
-                          return { ...prev, sampleTestCases: newTestCases };
-                        });
-                      }}
-                      required
+                    <FormField
+                      control={form.control}
+                      name={`sampleTestCases.${index}.explanation` as const}
+                      render={({ field }) => (
+                        <Textarea {...field} required />
+                      )}
                     />
                   </div>
                 </div>
@@ -230,10 +252,7 @@ const QuestionForm = React.memo(({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setFormData(prev => ({
-                ...prev,
-                sampleTestCases: [...prev.sampleTestCases, { input: "", output: "", explanation: "" }]
-              }))}
+              onClick={() => appendSampleTestCase({ input: "", output: "", explanation: "" })}
             >
               Add Sample Test Case
             </Button>
@@ -241,19 +260,14 @@ const QuestionForm = React.memo(({
 
           <div className="grid gap-2">
             <Label>Actual Test Cases</Label>
-            {formData.actualTestCases.map((testCase, index) => (
-              <div key={index} className="grid gap-2 p-4 border rounded-lg">
+            {actualTestCaseFields.map((field, index) => (
+              <div key={field.id} className="grid gap-2 p-4 border rounded-lg">
                 <div className="flex justify-between items-center">
                   <h4 className="font-medium">Test Case {index + 1}</h4>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        actualTestCases: prev.actualTestCases.filter((_, i) => i !== index)
-                      }));
-                    }}
+                    onClick={() => removeActualTestCase(index)}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -261,44 +275,32 @@ const QuestionForm = React.memo(({
                 <div className="grid gap-2">
                   <div>
                     <Label>Input</Label>
-                    <Input
-                      value={testCase.input}
-                      onChange={(e) => {
-                        setFormData(prev => {
-                          const newTestCases = [...prev.actualTestCases];
-                          newTestCases[index] = { ...newTestCases[index], input: e.target.value };
-                          return { ...prev, actualTestCases: newTestCases };
-                        });
-                      }}
-                      required
+                    <FormField
+                      control={form.control}
+                      name={`actualTestCases.${index}.input` as const}
+                      render={({ field }) => (
+                        <Input {...field} required />
+                      )}
                     />
                   </div>
                   <div>
                     <Label>Output</Label>
-                    <Input
-                      value={testCase.output}
-                      onChange={(e) => {
-                        setFormData(prev => {
-                          const newTestCases = [...prev.actualTestCases];
-                          newTestCases[index] = { ...newTestCases[index], output: e.target.value };
-                          return { ...prev, actualTestCases: newTestCases };
-                        });
-                      }}
-                      required
+                    <FormField
+                      control={form.control}
+                      name={`actualTestCases.${index}.output` as const}
+                      render={({ field }) => (
+                        <Input {...field} required />
+                      )}
                     />
                   </div>
                   <div>
                     <Label>Explanation</Label>
-                    <Textarea
-                      value={testCase.explanation}
-                      onChange={(e) => {
-                        setFormData(prev => {
-                          const newTestCases = [...prev.actualTestCases];
-                          newTestCases[index] = { ...newTestCases[index], explanation: e.target.value };
-                          return { ...prev, actualTestCases: newTestCases };
-                        });
-                      }}
-                      required
+                    <FormField
+                      control={form.control}
+                      name={`actualTestCases.${index}.explanation` as const}
+                      render={({ field }) => (
+                        <Textarea {...field} required />
+                      )}
                     />
                   </div>
                 </div>
@@ -307,10 +309,7 @@ const QuestionForm = React.memo(({
             <Button
               type="button"
               variant="outline"
-              onClick={() => setFormData(prev => ({
-                ...prev,
-                actualTestCases: [...prev.actualTestCases, { input: "", output: "", explanation: "" }]
-              }))}
+              onClick={() => appendActualTestCase({ input: "", output: "", explanation: "" })}
             >
               Add Actual Test Case
             </Button>
@@ -319,28 +318,19 @@ const QuestionForm = React.memo(({
           <div className="grid gap-2">
             <Label>Topics</Label>
             <div className="flex flex-wrap gap-2">
-              {formData.topics.map((topic, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    value={topic}
-                    onChange={(e) => {
-                      setFormData(prev => {
-                        const newTopics = [...prev.topics];
-                        newTopics[index] = e.target.value;
-                        return { ...prev, topics: newTopics };
-                      });
-                    }}
-                    required
+              {topicFields.map((field, index) => (
+                <div key={field.id} className="flex gap-2">
+                  <FormField
+                    control={form.control}
+                    name={`topics.${index}` as const}
+                    render={({ field }) => (
+                      <Input {...field} required />
+                    )}
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => {
-                      setFormData(prev => ({
-                        ...prev,
-                        topics: prev.topics.filter((_, i) => i !== index)
-                      }));
-                    }}
+                    onClick={() => removeTopic(index)}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -349,36 +339,109 @@ const QuestionForm = React.memo(({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setFormData(prev => ({ ...prev, topics: [...prev.topics, ""] }))}
+                onClick={() => appendTopic("")}
               >
                 Add Topic
               </Button>
             </div>
           </div>
 
+          {/* Solutions */}
+          <div className="grid gap-2">
+            <Label>Solutions</Label>
+            {solutionFields.map((field, index) => (
+              <div key={field.id} className="grid gap-2 p-4 border rounded-lg">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Solution #{index + 1}</h4>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => removeSolution(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid gap-2">
+                  <div>
+                    <Label>Name</Label>
+                    <FormField
+                      control={form.control}
+                      name={`questionSolutions.${index}.name` as const}
+                      render={({ field }) => (
+                        <Input placeholder="Enter solution name" {...field} required />
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <Label>Explanation</Label>
+                    <FormField
+                      control={form.control}
+                      name={`questionSolutions.${index}.explanation` as const}
+                      render={({ field }) => (
+                        <Textarea placeholder="Enter explanation" {...field} required />
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <Label>Example</Label>
+                    <FormField
+                      control={form.control}
+                      name={`questionSolutions.${index}.example` as const}
+                      render={({ field }) => (
+                        <Input placeholder="Enter example" {...field} required />
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <Label>Code</Label>
+                    <FormField
+                      control={form.control}
+                      name={`questionSolutions.${index}.code` as const}
+                      render={({ field }) => (
+                        <Textarea placeholder="Enter solution code" className="font-mono" {...field} required />
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => appendSolution({ name: "", explanation: "", example: "", code: "" })}
+            >
+              Add Solution
+            </Button>
+          </div>
+
           <div className="grid gap-2">
             <Label>Difficulty</Label>
-            <Select
-              value={formData.questionDifficulty}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, questionDifficulty: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select difficulty" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="EASY">Easy</SelectItem>
-                <SelectItem value="MEDIUM">Medium</SelectItem>
-                <SelectItem value="HARD">Hard</SelectItem>
-              </SelectContent>
-            </Select>
+            <FormField
+              control={form.control}
+              name="questionDifficulty"
+              render={({ field }) => (
+                <Select {...field} onValueChange={(value) => field.onChange(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select difficulty" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EASY">Easy</SelectItem>
+                    <SelectItem value="MEDIUM">Medium</SelectItem>
+                    <SelectItem value="HARD">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <div className="grid gap-2">
             <Label>Source</Label>
-            <Input
-              value={formData.questionSource}
-              onChange={(e) => setFormData(prev => ({ ...prev, questionSource: e.target.value }))}
-              required
+            <FormField
+              control={form.control}
+              name="questionSource"
+              render={({ field }) => (
+                <Input {...field} required />
+              )}
             />
           </div>
 

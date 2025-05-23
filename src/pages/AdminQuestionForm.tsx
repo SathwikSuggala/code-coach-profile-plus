@@ -41,10 +41,10 @@ const solutionSchema = z.object({
 const formSchema = z.object({
   questionName: z.string().min(1, "Question name is required"),
   questionDescription: z.string().min(1, "Question description is required"),
-  constraints: z.array(z.string()),
+  constraints: z.array(z.string()).min(1, "At least one constraint is required"),
   sampleTestCases: z.array(testCaseSchema),
   actualTestCases: z.array(testCaseSchema),
-  topics: z.array(z.string()),
+  topics: z.array(z.string()).min(1, "At least one topic is required"),
   questionDifficulty: z.enum(["EASY", "MEDIUM", "HARD"]),
   questionSource: z.enum(["LeetCode", "CodeForces", "HackerRank", "Other"]),
   questionSolutions: z.array(solutionSchema)
@@ -91,31 +91,31 @@ const AdminQuestionForm = () => {
   const { fields: constraintFields, append: appendConstraint, remove: removeConstraint } = 
     useFieldArray({
       control: form.control,
-      name: "constraints" as const
+      name: "constraints" as any
     });
   
   const { fields: sampleTestCaseFields, append: appendSampleTestCase, remove: removeSampleTestCase } = 
-    useFieldArray<FormValues, "sampleTestCases", "id">({
+    useFieldArray<FormValues>({
       control: form.control,
-      name: "sampleTestCases"
+      name: "sampleTestCases" as const
     });
   
   const { fields: actualTestCaseFields, append: appendActualTestCase, remove: removeActualTestCase } = 
-    useFieldArray<FormValues, "actualTestCases", "id">({
+    useFieldArray<FormValues>({
       control: form.control,
-      name: "actualTestCases"
+      name: "actualTestCases" as const
     });
   
   const { fields: topicFields, append: appendTopic, remove: removeTopic } = 
-    useFieldArray<FormValues>({
+    useFieldArray({
       control: form.control,
-      name: "topics" as const
+      name: "topics" as any
     });
   
   const { fields: solutionFields, append: appendSolution, remove: removeSolution } = 
-    useFieldArray<FormValues, "questionSolutions", "id">({
+    useFieldArray<FormValues>({
       control: form.control,
-      name: "questionSolutions"
+      name: "questionSolutions" as const
     });
 
   // Check if user is admin
@@ -484,7 +484,7 @@ const AdminQuestionForm = () => {
               </div>
 
               {/* Solutions */}
-              <div>
+              <div className="space-y-4">
                 <div className="flex items-center justify-between mb-2">
                   <FormLabel>Solutions</FormLabel>
                   <Button
@@ -512,7 +512,7 @@ const AdminQuestionForm = () => {
                         </Button>
                       )}
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <FormField
                         control={form.control}
                         name={`questionSolutions.${index}.name`}
