@@ -559,7 +559,7 @@ const AdminHome = () => {
           return;
         }
 
-        const response = await fetch(`${API_BASE_URL}/deleteQuestion/${questionId}`, {
+        const response = await fetch(`${API_BASE_URL}/admin/deleteQuestion/${questionId}`, {
           method: "DELETE",
           headers: {
             "Authorization": `Bearer ${token}`
@@ -641,7 +641,24 @@ const AdminHome = () => {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
+              className="flex items-center gap-2"
             >
+              <Button
+                variant="outline"
+                className="border-gray-300 hover:bg-gray-100 text-gray-700"
+                onClick={() => navigate('/admin-home')}
+              >
+                <Edit className="w-5 h-5 mr-2" />
+                Manage Questions
+              </Button>
+              <Button
+                variant="outline"
+                className="border-gray-300 hover:bg-gray-100 text-gray-700"
+                onClick={() => navigate('/admin/users')}
+              >
+                <User className="w-5 h-5 mr-2" />
+                Manage Users
+              </Button>
               <Button
                 variant="outline"
                 className="border-gray-300 hover:bg-gray-100 text-gray-700"

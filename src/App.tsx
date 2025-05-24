@@ -25,6 +25,7 @@ import Resources from "./pages/Resources";
 import CodingStats from "./pages/CodingStats";
 import ResourceGeneration from './pages/ResourceGeneration';
 import AdminHome from "./pages/AdminHome";
+import AdminUsers from "./pages/AdminUsers";
 
 const queryClient = new QueryClient();
 
@@ -108,6 +109,11 @@ const App = () => {
                 <Route path="/admin-home" element={
                   <ProtectedRoute>
                     <AdminHome />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/users" element={
+                  <ProtectedRoute>
+                    <AdminUsers />
                   </ProtectedRoute>
                 } />
                 
