@@ -1,6 +1,6 @@
 import { toast } from "sonner";
-
-export const API_BASE_URL = "https://capstone-1-y2mc.onrender.com/api";
+//https://capstone-1-y2mc.onrender.com
+export const API_BASE_URL = "http://localhost:8080/api";
 
 interface AuthResponse {
   jwt: string;
@@ -95,6 +95,33 @@ interface CodeForcesUser {
 interface CodeForcesContestsResponse {
   status: string;
   result: CodeForcesUser[];
+}
+
+interface TopicComparison {
+  [key: string]: {
+    user1Score: number;
+    user2Score: number;
+    verdict: string;
+  };
+}
+
+interface LeaderboardEntry {
+  username: string;
+  totalCoverage: number;
+}
+
+interface TopicHeatmap {
+  [key: string]: string;
+}
+
+interface TopicMasteryData {
+  average: number;
+  difference: number;
+  user: number;
+}
+
+interface TopicMasteryResponse {
+  [key: string]: TopicMasteryData;
 }
 
 export const apiService = {
@@ -763,6 +790,151 @@ export const apiService = {
     } catch (error) {
       console.error("Get combined monthly submissions error:", error);
       toast.error("Failed to fetch combined monthly submissions");
+      throw error;
+    }
+  },
+
+  // Comparator APIs
+  getQuizChangePercentage: async (): Promise<number> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/readingMaterial/quiz/change-percentage`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Get quiz change percentage error:", error);
+      toast.error("Failed to get quiz change percentage");
+      throw error;
+    }
+  },
+
+  compareTopicMastery: async (): Promise<TopicMasteryResponse> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/topicKnown/compare-topic-mastery`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Compare topic mastery error:", error);
+      toast.error("Failed to compare topic mastery");
+      throw error;
+    }
+  },
+
+  getLeaderboard: async (): Promise<LeaderboardEntry[]> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/topicKnown/leaderboard`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Get leaderboard error:", error);
+      toast.error("Failed to get leaderboard");
+      throw error;
+    }
+  },
+
+  getTopicHeatmap: async (): Promise<TopicHeatmap> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/topicKnown/topic-heatmap`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Get topic heatmap error:", error);
+      toast.error("Failed to get topic heatmap");
+      throw error;
+    }
+  },
+
+  getSuggestedTopics: async (): Promise<string[]> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/topicKnown/suggested-topics`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Get suggested topics error:", error);
+      toast.error("Failed to get suggested topics");
+      throw error;
+    }
+  },
+
+  compareWithFriend: async (friendUsername: string): Promise<TopicComparison> => {
+    try {
+      const token = localStorage.getItem("jwt");
+      if (!token) throw new Error("No authentication token found");
+      
+      const response = await fetch(`${API_BASE_URL}/topicKnown/compare-users/${friendUsername}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Compare with friend error:", error);
+      toast.error("Failed to compare with friend");
       throw error;
     }
   },

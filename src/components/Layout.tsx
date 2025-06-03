@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   Book,
-  BarChart
+  BarChart,
+  GitCompare
 } from "lucide-react";
 
 interface LayoutProps {
@@ -33,6 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: "Quizzes", path: "/quizzes", icon: <FileText size={20} /> },
     { name: "Resources", path: "/resources", icon: <Book size={20} /> },
     { name: "Coding Stats", path: "/coding-stats", icon: <BarChart size={20} /> },
+    { name: "Comparator", path: "/comparator", icon: <GitCompare size={20} /> },
   ];
 
   const isActive = (path: string) => {
@@ -59,7 +61,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   key={item.name}
                   to={item.path}
                   onClick={handleNavigation}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-md font-medium transition-colors duration-150 ${
+                  className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${
                     isActive(item.path)
                       ? "bg-dev-blue text-white"
                       : "text-gray-700 hover:bg-gray-100"
@@ -72,7 +74,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {isAuthenticated && (
                 <button
                   onClick={() => { startLoading(); logout(); }}
-                  className="flex items-center gap-1 px-3 py-2 rounded-md text-red-600 hover:bg-red-50 font-medium"
+                  className="flex items-center gap-1 px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50 font-medium"
                 >
                   <LogOut size={20} />
                   <span>Logout</span>
@@ -102,7 +104,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 key={item.name}
                 to={item.path}
                 onClick={handleNavigation}
-                className={`flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors duration-150 ${isActive(item.path) ? "bg-gray-200 text-gray-900" : "text-gray-700 hover:bg-gray-100"}`}
+                className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ${isActive(item.path) ? "bg-gray-200 text-gray-900" : "text-gray-700 hover:bg-gray-100"}`}
               >
                 {item.icon}
                 <span className="ml-3">{item.name}</span>
@@ -111,7 +113,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {isAuthenticated && (
               <button
                 onClick={() => { startLoading(); logout(); setIsMobileMenuOpen(false); }}
-                className="flex items-center px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50 w-full text-left"
+                className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 w-full text-left"
               >
                 <LogOut size={20} />
                 <span className="ml-3">Logout</span>

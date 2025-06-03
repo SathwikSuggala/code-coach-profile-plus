@@ -26,6 +26,7 @@ import CodingStats from "./pages/CodingStats";
 import ResourceGeneration from './pages/ResourceGeneration';
 import AdminHome from "./pages/AdminHome";
 import AdminUsers from "./pages/AdminUsers";
+import Comparator from "./pages/Comparator";
 
 const queryClient = new QueryClient();
 
@@ -90,11 +91,6 @@ const App = () => {
                     <QuizHistory />
                   </ProtectedRoute>
                 } />
-                <Route path="/admin/add-question" element={
-                  <ProtectedRoute>
-                    <AdminQuestionForm />
-                  </ProtectedRoute>
-                } />
                 <Route path="/resources" element={
                   <ProtectedRoute>
                     <Resources />
@@ -105,8 +101,17 @@ const App = () => {
                     <CodingStats />
                   </ProtectedRoute>
                 } />
-                <Route path="/resource-generation" element={<ResourceGeneration />} />
-                <Route path="/admin-home" element={
+                <Route path="/comparator" element={
+                  <ProtectedRoute>
+                    <Comparator />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/add-question" element={
+                  <ProtectedRoute>
+                    <AdminQuestionForm />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin" element={
                   <ProtectedRoute>
                     <AdminHome />
                   </ProtectedRoute>
@@ -116,6 +121,7 @@ const App = () => {
                     <AdminUsers />
                   </ProtectedRoute>
                 } />
+                <Route path="/resource-generation" element={<ResourceGeneration />} />
                 
                 {/* 404 route */}
                 <Route path="*" element={<NotFound />} />
